@@ -1,43 +1,15 @@
-require "rubygems"
-require "bundler"
-Bundler.require(:default, :test)
-
-require "pace"
+require "spec_helper"
 
 describe Pace do
-  class Work
-    def self.queue
-      "normal"
-    end
-  end
-
   describe ".start" do
-    it "yields a serialized Resque job for the given queue" do
-      Resque.enqueue(Work, :foo => 1, :bar => 2)
+    it "is a shortcut for instantiating and running a Pace::Worker" do
+      expected_block = Proc.new {}
 
-      Pace.start("normal") do |job|
-        job["class"].should == "Work"
-        job["args"].should == [{"foo" => 1, "bar" => 2}]
-        EM.stop_event_loop
-      end
-    end
+      worker = Pace::Worker.new
+      worker.should_receive(:start).with(&expected_block)
+      Pace::Worker.should_receive(:new).with("normal").and_return(worker)
 
-    it "continues to pop jobs until stopped" do
-      Resque.enqueue(Work, :n => 1)
-      Resque.enqueue(Work, :n => 2)
-      Resque.enqueue(Work, :n => 3)
-      Resque.enqueue(Work, :n => 4)
-      Resque.enqueue(Work, :n => 5)
-
-      results = []
-
-      Pace.start("normal") do |job|
-        n = job["args"].first["n"]
-        results << n
-        EM.stop_event_loop if n == 5
-      end
-
-      results.should == [1, 2, 3, 4, 5]
+      Pace.start("normal", &expected_block)
     end
   end
 end

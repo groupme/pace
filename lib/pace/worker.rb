@@ -2,7 +2,7 @@ module Pace
   class Worker
     attr_reader :queue
 
-    def initialize(queue)
+    def initialize(queue = nil)
       @queue = queue
     end
 
