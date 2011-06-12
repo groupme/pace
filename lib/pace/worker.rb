@@ -1,9 +1,9 @@
 module Pace
   class Worker
-    attr_reader :queue
+    attr_reader :queue_name
 
     def initialize(queue = nil)
-      @queue = queue
+      @queue_name = set_queue_name(queue)
     end
 
     def start(&block)
@@ -15,11 +15,23 @@ module Pace
       end
     end
 
+    private
+
     def fetch_next_job
-      @redis.blpop("resque:queue:#{@queue}", 0) do |queue_name, job|
+      @redis.blpop(queue_name, 0) do |queue_name, job|
         EM.next_tick { fetch_next_job }
         @block.call JSON.parse(job)
       end
+    end
+
+    def set_queue_name(queue)
+      name = queue || ENV["PACE_QUEUE"]
+
+      if name.nil? || name.empty?
+        raise ArgumentError.new("Queue unspecified -- pass a queue name or set PACE_QUEUE")
+      end
+
+      name.index(":") ? name : "resque:queue:#{name}"
     end
   end
 end
