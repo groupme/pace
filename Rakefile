@@ -14,6 +14,11 @@ namespace :examples do
     require "sleep"
   end
 
+  desc "Concurrent processing using EM.defer"
+  task :defer do
+    require "defer"
+  end
+
   desc "Concurrent processing by blocking on an HTTP connection"
   task :http do
     require "http"

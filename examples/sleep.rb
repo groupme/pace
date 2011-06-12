@@ -1,3 +1,9 @@
+# Our work in this example does not defer nor block on a socket,
+# so jobs will be processed serially, finishing one before starting
+# the next.
+#
+# This should be avoided.
+
 require "pace"
 
 puts "Waiting for jobs..."
