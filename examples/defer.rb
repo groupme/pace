@@ -6,13 +6,14 @@ require "pace"
 puts "Waiting for jobs..."
 
 Pace.start(ENV["QUEUE"] || "normal") do |job|
-  EM.defer do
-    rand(10).times do
-      sleep 0.1
-    end
+  start_time = Time.now
 
-    time = Time.now
-    timestamp = "#{time.strftime("%I:%M:%S")}.#{time.usec}"
-    puts "Finished [#{timestamp}]: #{job.inspect}"
-  end
+  operation = proc {
+    rand(10).times { sleep 0.1 }
+  }
+  callback = proc { |result|
+    Pace.log(job.inspect, start_time)
+  }
+
+  EM.defer operation, callback
 end
