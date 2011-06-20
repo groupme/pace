@@ -1,8 +1,6 @@
 require "rubygems"
 require "bundler"
-Bundler.require(:default, :test)
-
-require "pace"
+Bundler.require :default, :development
 
 RSpec.configure do |config|
   config.before(:each) do
