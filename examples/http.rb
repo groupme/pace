@@ -10,8 +10,8 @@ Pace.start(:queue => (ENV["PACE_QUEUE"] || "normal")) do |job|
   start_time = Time.now
 
   http = EM::Protocols::HttpClient.request(
-    :host    => "www.google.com",
-    :port    => 80,
+    :host    => "localhost",
+    :port    => 9000,
     :request => "/"
   )
   http.callback do |r|
