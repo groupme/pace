@@ -16,10 +16,19 @@ module Pace
 
     def start(&block)
       @block = block
+
+      Pace.logger.info "Starting up"
+      register_signal_handlers
+
       EM.run do
         @redis = EM::Protocols::Redis.connect(@options)
         fetch_next_job
       end
+    end
+
+    def shutdown
+      Pace.logger.info "Shutting down"
+      EM.stop_event_loop
     end
 
     private
@@ -39,6 +48,12 @@ module Pace
       end
 
       name.index(":") ? name : "resque:queue:#{name}"
+    end
+
+    def register_signal_handlers
+      trap('TERM') { shutdown }
+      trap('QUIT') { shutdown }
+      trap('INT')  { shutdown }
     end
   end
 end

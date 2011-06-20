@@ -1,7 +1,5 @@
 require "pace"
 
-puts "Echoing jobs to console..."
-
-Pace.start(ENV["QUEUE"] || "normal") do |job|
+Pace.start(:queue => (ENV["PACE_QUEUE"] || "normal")) do |job|
   Pace.log(job.inspect, Time.now)
 end

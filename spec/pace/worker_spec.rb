@@ -7,6 +7,10 @@ describe Pace::Worker do
     end
   end
 
+  before do
+    Resque.dequeue(Work)
+  end
+
   describe "#initialize" do
     describe "sets the Redis connection options" do
       before do
@@ -138,6 +142,50 @@ describe Pace::Worker do
       end
 
       results.should == [1, 2, 3, 4, 5]
+    end
+  end
+
+  describe "#shutdown" do
+    it "stops the event loop on the next attempt to fetch a job" do
+      Resque.enqueue(Work, :n => 1)
+      Resque.enqueue(Work, :n => 2)
+
+      results = []
+
+      worker = Pace::Worker.new(:queue => "pace")
+      worker.start do |job|
+        worker.shutdown
+        results << job["args"].first["n"]
+      end
+
+      # Never runs the second job
+      results.should == [1]
+    end
+  end
+
+  describe "signal handling" do
+    before do
+      Resque.enqueue(Work, :n => 1)
+      Resque.enqueue(Work, :n => 2)
+      Resque.enqueue(Work, :n => 3)
+
+      @worker = Pace::Worker.new(:queue => "pace")
+    end
+
+    ["QUIT", "TERM", "INT"].each do |signal|
+      it "handles SIG#{signal}" do
+        results = []
+
+        @worker.start do |job|
+          n = job["args"].first["n"]
+          Process.kill(signal, $$) if n == 1
+          results << n
+        end
+
+        # trap seems to interrupt the event loop randomly, so it does not appear
+        # possible to determine exactly how many jobs will be processed
+        results.should_not be_empty
+      end
     end
   end
 end
