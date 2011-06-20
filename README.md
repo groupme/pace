@@ -1,9 +1,11 @@
 # Pace - A Resque Reactor #
 
+More docs to come...
+
 In short, the goals are:
 
  * Performance
- * Transparency via instrumentation
+ * Transparency via instrumentation (TODO)
 
 ## Examples ##
 

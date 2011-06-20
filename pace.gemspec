@@ -9,8 +9,7 @@ Gem::Specification.new do |s|
   s.authors     = ["Dave Yeu"]
   s.email       = ["daveyeu@gmail.com"]
   s.homepage    = ""
-  s.summary     = %q{TODO: Write a gem summary}
-  s.description = %q{TODO: Write a gem description}
+  s.summary     = %q{Resque-compatible job processing in an event loop}
 
   s.rubyforge_project = "pace"
 
