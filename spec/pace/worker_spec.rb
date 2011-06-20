@@ -3,22 +3,79 @@ require "spec_helper"
 describe Pace::Worker do
   class Work
     def self.queue
-      "normal"
+      "pace"
     end
   end
 
   describe "#initialize" do
+    describe "sets the Redis connection options" do
+      before do
+        @connection = double(EM::Connection)
+      end
+
+      it "uses 127.0.0.1:6379/0 by default" do
+        EM::Protocols::Redis.should_receive(:connect).with(
+          :host     => "127.0.0.1",
+          :port     => 6379,
+          :password => nil,
+          :db       => 0
+        ).and_return(@connection)
+
+        worker = Pace::Worker.new :queue => "normal"
+        worker.stub(:fetch_next_job).and_return { EM.stop_event_loop }
+        worker.start
+        worker.redis.should == @connection
+      end
+
+      it "can use a custom URL string" do
+        EM::Protocols::Redis.should_receive(:connect).with(
+          :host     => "some.host.local",
+          :port     => 9999,
+          :password => "secret",
+          :db       => 1
+        ).and_return(@connection)
+
+        worker = Pace::Worker.new :url => "redis://user:secret@some.host.local:9999/1", :queue => "normal"
+        worker.stub(:fetch_next_job).and_return { EM.stop_event_loop }
+        worker.start
+        worker.redis.should == @connection
+      end
+
+      it "can be set using the PACE_REDIS environment variable" do
+        original_redis = ENV["PACE_REDIS"]
+        ENV["PACE_REDIS"] = "redis://user:secret@some.host.local:9999/1"
+
+        EM::Protocols::Redis.should_receive(:connect).with(
+          :host     => "some.host.local",
+          :port     => 9999,
+          :password => "secret",
+          :db       => 1
+        ).and_return(@connection)
+
+        worker = Pace::Worker.new :queue => "normal"
+        worker.stub(:fetch_next_job).and_return { EM.stop_event_loop }
+        worker.start
+        worker.redis.should == @connection
+
+        ENV["PACE_REDIS"] = original_redis
+      end
+    end
+
     describe "sets the queue_name" do
+      before do
+        EM::Protocols::Redis.stub(:connect).and_return(double(EM::Connection))
+      end
+
       context "when the given name has no colons" do
         it "prepends the Resque default queue 'namespace'" do
-          worker = Pace::Worker.new("normal")
+          worker = Pace::Worker.new(:queue => "normal")
           worker.queue_name.should == "resque:queue:normal"
         end
       end
 
       context "when the given name has colons" do
         it "does not prepend anything (absolute)" do
-          worker = Pace::Worker.new("my:special:queue")
+          worker = Pace::Worker.new(:queue => "my:special:queue")
           worker.queue_name.should == "my:special:queue"
         end
       end
@@ -52,7 +109,7 @@ describe Pace::Worker do
 
   describe "#start" do
     before do
-      @worker = Pace::Worker.new("normal")
+      @worker = Pace::Worker.new(:queue => "pace")
     end
 
     it "yields a serialized Resque jobs" do

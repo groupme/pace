@@ -1,16 +1,23 @@
 module Pace
   class Worker
-    attr_reader :queue_name
+    attr_reader :redis, :queue_name
 
-    def initialize(queue = nil)
-      @queue_name = set_queue_name(queue)
+    def initialize(options = {})
+      @options = options.dup
+      @queue_name = set_queue_name(@options.delete(:queue))
+
+      url = URI(@options.delete(:url) || ENV["PACE_REDIS"] || "redis://127.0.0.1:6379/0")
+
+      @options[:host]     ||= url.host
+      @options[:port]     ||= url.port
+      @options[:password] ||= url.password
+      @options[:db]       ||= url.path[1..-1].to_i
     end
 
     def start(&block)
       @block = block
-
       EM.run do
-        @redis = EM::Protocols::Redis.connect
+        @redis = EM::Protocols::Redis.connect(@options)
         fetch_next_job
       end
     end

@@ -5,11 +5,14 @@ describe Pace do
     it "is a shortcut for instantiating and running a Pace::Worker" do
       expected_block = Proc.new {}
 
-      worker = Pace::Worker.new("normal")
+      worker = double(Pace::Worker)
       worker.should_receive(:start).with(&expected_block)
-      Pace::Worker.should_receive(:new).with("normal").and_return(worker)
+      Pace::Worker.should_receive(:new).with(
+        :url   => "redis://127.0.0.1:6379/0",
+        :queue => "normal",
+      ).and_return(worker)
 
-      Pace.start("normal", &expected_block)
+      Pace.start(:url => "redis://127.0.0.1:6379/0", :queue => "normal", &expected_block)
     end
   end
 end

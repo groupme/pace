@@ -1,12 +1,13 @@
 require "eventmachine"
 require "em-redis"
 require "json"
+require "uri"
 require "logger"
 require "pace/worker"
 
 module Pace
-  def self.start(queue, &block)
-    worker = Pace::Worker.new(queue)
+  def self.start(options = {}, &block)
+    worker = Pace::Worker.new(options)
     worker.start(&block)
   end
 
