@@ -143,6 +143,44 @@ describe Pace::Worker do
 
       results.should == [1, 2, 3, 4, 5]
     end
+
+    it "rescues any errors in the passed block" do
+      Resque.enqueue(Work, :n => 1)
+      Resque.enqueue(Work, :n => 2)
+      Resque.enqueue(Work, :n => 3)
+
+      results = []
+
+      @worker.start do |job|
+        n = job["args"].first["n"]
+
+        raise "FAIL" if n == 1
+        results << n
+        EM.stop_event_loop if n == 3
+      end
+
+      results.should == [2, 3]
+    end
+  end
+
+  describe "#on_error" do
+    it "creates a callback to run if there's an error while processing a job" do
+      Resque.enqueue(Work, :n => 1)
+      Resque.enqueue(Work, :n => 2)
+      exception = RuntimeError.new("FAIL")
+
+      worker = Pace::Worker.new(:queue => "pace")
+      worker.on_error do |job, error|
+        job.should == {"class" => "Work", "args" => [{"n" => 1}]}.to_json
+        error.should == exception
+      end
+
+      worker.start do |job|
+        n = job["args"].first["n"]
+        raise exception    if n == 1
+        EM.stop_event_loop if n == 2
+      end
+    end
   end
 
   describe "#shutdown" do

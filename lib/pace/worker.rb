@@ -31,12 +31,22 @@ module Pace
       EM.stop_event_loop
     end
 
+    def on_error(&callback)
+      @error_callback = callback
+    end
+
     private
 
     def fetch_next_job
       @redis.blpop(queue_name, 0) do |queue_name, job|
         EM.next_tick { fetch_next_job }
-        @block.call JSON.parse(job)
+
+        begin
+          @block.call JSON.parse(job)
+        rescue Exception => e
+          log_failed_job(job, e)
+          @error_callback.call(job, e) if @error_callback
+        end
       end
     end
 
@@ -54,6 +64,12 @@ module Pace
       trap('TERM') { shutdown }
       trap('QUIT') { shutdown }
       trap('INT')  { shutdown }
+    end
+
+    def log_failed_job(job, exception)
+      message = "Job failed!\n#{job}\n#{exception.message}\n"
+      message << exception.backtrace.join("\n")
+      Pace.logger.error(message)
     end
   end
 end
