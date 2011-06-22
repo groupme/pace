@@ -28,6 +28,11 @@ module Pace
       register_signal_handlers
 
       EM.run do
+        EventMachine::add_periodic_timer(Pace::LoadAverage::INTERVAL) do
+          Pace::LoadAverage.compute
+          Pace.logger.info("load averages: #{$load.join(' ')}")
+        end
+
         @redis = EM::Protocols::Redis.connect(@options)
         fetch_next_job
       end
@@ -56,6 +61,7 @@ module Pace
 
         begin
           @block.call JSON.parse(job)
+          Pace::LoadAverage.tick
         rescue Exception => e
           log_failed_job(job, e)
           @error_callback.call(job, e) if @error_callback

@@ -3,6 +3,7 @@ require "em-redis"
 require "json"
 require "uri"
 require "logger"
+require "pace/load_average"
 require "pace/worker"
 
 module Pace
