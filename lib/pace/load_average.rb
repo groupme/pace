@@ -1,6 +1,6 @@
 module Pace
   module LoadAverage
-    INTERVAL  = 5.0 # sec
+    INTERVAL  = 10.0 # sec
     FSHIFT    = 11
     FIXED_1   = 1 << FSHIFT
     EXP_1     = 1884.0 # 1/exp(5sec/1min) as fixed-point
