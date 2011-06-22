@@ -23,7 +23,7 @@ module Pace
       def average(load, exp, n)
         load *= exp
         load += n*(FIXED_1-exp)
-        ((load * 1000).to_i >> FSHIFT) / 1000.0
+        (((load * 1000).to_i >> FSHIFT) / 1000.0).round(2)
       end
 
       def tick
