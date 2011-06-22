@@ -73,14 +73,24 @@ describe Pace::Worker do
       context "when the given name has no colons" do
         it "prepends the Resque default queue 'namespace'" do
           worker = Pace::Worker.new(:queue => "normal")
-          worker.queue_name.should == "resque:queue:normal"
+          worker.queue.should == "resque:queue:normal"
         end
       end
 
       context "when the given name has colons" do
         it "does not prepend anything (absolute)" do
           worker = Pace::Worker.new(:queue => "my:special:queue")
-          worker.queue_name.should == "my:special:queue"
+          worker.queue.should == "my:special:queue"
+        end
+      end
+
+      context "when a namespace is provided" do
+        it "prepends the namespace in either case" do
+          worker = Pace::Worker.new(:queue => "normal", :namespace => "test")
+          worker.queue.should == "test:resque:queue:normal"
+
+          worker = Pace::Worker.new(:queue => "special:queue", :namespace => "test")
+          worker.queue.should == "test:special:queue"
         end
       end
 
@@ -96,11 +106,11 @@ describe Pace::Worker do
         it "falls back to the PACE_QUEUE environment variable" do
           ENV["PACE_QUEUE"] = "high"
           worker = Pace::Worker.new
-          worker.queue_name.should == "resque:queue:high"
+          worker.queue.should == "resque:queue:high"
 
           ENV["PACE_QUEUE"] = "my:special:queue"
           worker = Pace::Worker.new
-          worker.queue_name.should == "my:special:queue"
+          worker.queue.should == "my:special:queue"
         end
 
         it "throws an exception if PACE_QUEUE is nil" do
@@ -198,6 +208,38 @@ describe Pace::Worker do
 
       # Never runs the second job
       results.should == [1]
+    end
+  end
+
+  describe "#enqueue" do
+    class CallbackJob
+      def self.queue
+        "callback"
+      end
+    end
+
+    it "adds a new, Resque-compatible job into the specified queue" do
+      Resque.enqueue(Work)
+
+      options = {:x => 1, :y => 2}
+
+      worker = Pace::Worker.new(:queue => "pace")
+      worker.start do |job|
+        worker.enqueue(CallbackJob.queue, CallbackJob, options) {
+          EM.stop_event_loop
+        }
+      end
+
+      new_job = Resque.pop(CallbackJob.queue)
+      new_job.should == {
+        "class" => "CallbackJob",
+        "args"  => [{"x" => 1, "y" => 2}]
+      }
+
+      # It's identical to a job added w/ Resque (important!)
+      Resque.enqueue(CallbackJob, options)
+      resque_job = Resque.pop(CallbackJob.queue)
+      resque_job.should == new_job
     end
   end
 

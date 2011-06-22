@@ -35,11 +35,11 @@ module Pace
 
             EM.run do
               @redis = EM::Protocols::Redis.connect(@options)
-              @redis.lrange(queue_name, 0, -1) do |jobs|
+              @redis.lrange(queue, 0, -1) do |jobs|
                 jobs.each do |job|
                   block.call JSON.parse(job)
                 end
-                @redis.del(queue_name) { EM.stop_event_loop }
+                @redis.del(queue) { EM.stop_event_loop }
               end
             end
           end

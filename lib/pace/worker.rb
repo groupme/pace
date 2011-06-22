@@ -1,10 +1,17 @@
 module Pace
   class Worker
-    attr_reader :redis, :queue_name
+    attr_reader :redis, :queue
 
     def initialize(options = {})
-      @options = options.dup
-      @queue_name = set_queue_name(@options.delete(:queue))
+      @options   = options.dup
+      @queue     = @options.delete(:queue) || ENV["PACE_QUEUE"]
+      @namespace = @options.delete(:namespace)
+
+      if @queue.nil? || @queue.empty?
+        raise ArgumentError.new("Queue unspecified -- pass a queue name or set PACE_QUEUE")
+      end
+
+      @queue = fully_qualified_queue(@queue)
 
       url = URI(@options.delete(:url) || ENV["PACE_REDIS"] || "redis://127.0.0.1:6379/0")
 
@@ -35,10 +42,16 @@ module Pace
       @error_callback = callback
     end
 
+    def enqueue(queue, klass, *args, &block)
+      queue = fully_qualified_queue(queue)
+      job   = {:class => klass.to_s, :args => args}.to_json
+      @redis.rpush(queue, job, &block)
+    end
+
     private
 
     def fetch_next_job
-      @redis.blpop(queue_name, 0) do |queue_name, job|
+      @redis.blpop(queue, 0) do |queue, job|
         EM.next_tick { fetch_next_job }
 
         begin
@@ -50,14 +63,11 @@ module Pace
       end
     end
 
-    def set_queue_name(queue)
-      name = queue || ENV["PACE_QUEUE"]
-
-      if name.nil? || name.empty?
-        raise ArgumentError.new("Queue unspecified -- pass a queue name or set PACE_QUEUE")
-      end
-
-      name.index(":") ? name : "resque:queue:#{name}"
+    def fully_qualified_queue(queue)
+      parts = [queue]
+      parts.unshift("resque:queue") unless queue.index(":")
+      parts.unshift(@namespace) unless @namespace.nil?
+      parts.join(":")
     end
 
     def register_signal_handlers
