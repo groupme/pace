@@ -13,9 +13,9 @@ module Pace
 
   def self.log(message, start_time = nil)
     if start_time
-      logger.info("%.64s (%0.6fs)" % [message, Time.now - start_time])
+      logger.info("%s (%0.6fs)" % [message, Time.now - start_time])
     else
-      logger.info("%.64s" % message)
+      logger.info("%s" % message)
     end
   end
 
