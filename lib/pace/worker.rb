@@ -28,6 +28,7 @@ module Pace
       register_signal_handlers
 
       EM.run do
+        EM.kqueue
         EventMachine::add_periodic_timer(Pace::LoadAverage::INTERVAL) do
           Pace::LoadAverage.compute
           Pace.logger.info("load averages: #{$load.join(' ')}")
