@@ -20,6 +20,9 @@ end
 
 Pace.on_error do |job, error|
   EM.defer do
-    HoptoadNotifier.notify_or_ignore(error, :parameters => {:job => job})
+    HoptoadNotifier.notify_or_ignore(error,
+      :parameters => {:job => job},
+      :environment_name => (ENV["RACK_ENV"] || ENV["RAILS_ENV"])
+    )
   end
 end
