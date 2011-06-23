@@ -20,14 +20,26 @@ module Pace
         $load
       end
 
+      def tick
+        $ticks += 1
+      end
+
+      private
+      
       def average(load, exp, n)
         load *= exp
         load += n*(FIXED_1-exp)
-        (((load * 1000).to_i >> FSHIFT) / 1000.0).round(2)
+        load = (((load * 1000).to_i >> FSHIFT) / 1000.0)
+        round(load, 2)
       end
 
-      def tick
-        $ticks += 1
+      def round(float, precision = nil)
+        if precision
+          magnitude = 10.0 ** precision
+          (float * magnitude).round / magnitude
+        else
+          float.round
+        end
       end
     end
   end
