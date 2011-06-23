@@ -61,5 +61,13 @@ module Pace
     def logger=(new_logger)
       @logger = new_logger
     end
+
+    def on_error(&callback)
+      error_callbacks << callback
+    end
+
+    def error_callbacks
+      @error_callbacks ||= []
+    end
   end
 end

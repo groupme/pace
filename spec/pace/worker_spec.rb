@@ -116,15 +116,23 @@ describe Pace::Worker do
   end
 
   describe "#on_error" do
-    it "creates a callback to run if there's an error while processing a job" do
+    it "creates callbacks to run if there's an error while processing a job" do
       Resque.enqueue(Work, :n => 1)
       Resque.enqueue(Work, :n => 2)
       exception = RuntimeError.new("FAIL")
 
       worker = Pace::Worker.new("pace")
+      errors = []
+
+      # Error handler 1
       worker.on_error do |job, error|
         job.should == {"class" => "Work", "args" => [{"n" => 1}]}.to_json
-        error.should == exception
+        errors << error
+      end
+
+      # Error handler 2
+      worker.on_error do |job, error|
+        errors << error
       end
 
       worker.start do |job|
@@ -132,6 +140,31 @@ describe Pace::Worker do
         raise exception    if n == 1
         EM.stop_event_loop if n == 2
       end
+
+      errors.should == [exception, exception]
+    end
+
+    it "also fires global callbacks defined on Pace" do
+      Resque.enqueue(Work, :n => 1)
+      Resque.enqueue(Work, :n => 2)
+      exception = RuntimeError.new("FAIL")
+
+      worker = Pace::Worker.new("pace")
+      errors = []
+
+      # Global handler
+      Pace.on_error { |job, error| errors << error }
+
+      # Local handler
+      worker.on_error { |job, error| errors << error }
+
+      worker.start do |job|
+        n = job["args"].first["n"]
+        raise exception    if n == 1
+        EM.stop_event_loop if n == 2
+      end
+
+      errors.should == [exception, exception]
     end
   end
 

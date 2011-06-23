@@ -10,6 +10,7 @@ module Pace
       end
 
       @queue = Pace.full_queue_name(queue)
+      @error_callbacks = []
     end
 
     def start(&block)
@@ -36,7 +37,7 @@ module Pace
     end
 
     def on_error(&callback)
-      @error_callback = callback
+      @error_callbacks << callback
     end
 
     private
@@ -49,8 +50,8 @@ module Pace
           @block.call JSON.parse(job)
           Pace::LoadAverage.tick
         rescue Exception => e
-          log_failed_job(job, e)
-          @error_callback.call(job, e) if @error_callback
+          log_failed_job("Job failed!", job, e)
+          fire_error_callbacks(job, e)
         end
       end
     end
@@ -65,10 +66,20 @@ module Pace
       Pace.logger.info(message)
     end
 
-    def log_failed_job(job, exception)
-      message = "Job failed!\n#{job}\n#{exception.message}\n"
+    def log_failed_job(message, job, exception)
+      message = "#{message}\n#{job}\n#{exception.message}\n"
       message << exception.backtrace.join("\n")
       Pace.logger.error(message)
+    end
+
+    def fire_error_callbacks(job, error)
+      begin
+        (Pace.error_callbacks + @error_callbacks).each do |callback|
+          callback.call(job, error)
+        end
+      rescue Exception => e
+        log_failed_job("Your error handler just failed!", job, e)
+      end
     end
   end
 end
