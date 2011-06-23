@@ -12,96 +12,37 @@ describe Pace::Worker do
   end
 
   describe "#initialize" do
-    describe "sets the Redis connection options" do
-      before do
-        @connection = double(EM::Connection)
-      end
-
-      it "uses 127.0.0.1:6379/0 by default" do
-        EM::Protocols::Redis.should_receive(:connect).with(
-          :host     => "127.0.0.1",
-          :port     => 6379,
-          :password => nil,
-          :db       => 0
-        ).and_return(@connection)
-
-        worker = Pace::Worker.new :queue => "normal"
-        worker.stub(:fetch_next_job).and_return { EM.stop_event_loop }
-        worker.start
-        worker.redis.should == @connection
-      end
-
-      it "can use a custom URL string" do
-        EM::Protocols::Redis.should_receive(:connect).with(
-          :host     => "some.host.local",
-          :port     => 9999,
-          :password => "secret",
-          :db       => 1
-        ).and_return(@connection)
-
-        worker = Pace::Worker.new :url => "redis://user:secret@some.host.local:9999/1", :queue => "normal"
-        worker.stub(:fetch_next_job).and_return { EM.stop_event_loop }
-        worker.start
-        worker.redis.should == @connection
-      end
-
-      it "can be set using the PACE_REDIS environment variable" do
-        original_redis = ENV["PACE_REDIS"]
-        ENV["PACE_REDIS"] = "redis://user:secret@some.host.local:9999/1"
-
-        EM::Protocols::Redis.should_receive(:connect).with(
-          :host     => "some.host.local",
-          :port     => 9999,
-          :password => "secret",
-          :db       => 1
-        ).and_return(@connection)
-
-        worker = Pace::Worker.new :queue => "normal"
-        worker.stub(:fetch_next_job).and_return { EM.stop_event_loop }
-        worker.start
-        worker.redis.should == @connection
-
-        ENV["PACE_REDIS"] = original_redis
-      end
-    end
-
-    describe "sets the queue_name" do
-      before do
-        EM::Protocols::Redis.stub(:connect).and_return(double(EM::Connection))
-      end
-
+    describe "builds the queue name" do
       context "when the given name has no colons" do
         it "prepends the Resque default queue 'namespace'" do
-          worker = Pace::Worker.new(:queue => "normal")
+          worker = Pace::Worker.new("normal")
           worker.queue.should == "resque:queue:normal"
         end
       end
 
       context "when the given name has colons" do
-        it "does not prepend anything (absolute)" do
-          worker = Pace::Worker.new(:queue => "my:special:queue")
+        it "does not prepend anything (like an absolute path)" do
+          worker = Pace::Worker.new("my:special:queue")
           worker.queue.should == "my:special:queue"
         end
       end
 
-      context "when a namespace is provided" do
+      context "when a global namespace is attached to Pace" do
+        before { Pace.namespace = "test" }
+        after  { Pace.namespace = nil }
+
         it "prepends the namespace in either case" do
-          worker = Pace::Worker.new(:queue => "normal", :namespace => "test")
+          worker = Pace::Worker.new("normal")
           worker.queue.should == "test:resque:queue:normal"
 
-          worker = Pace::Worker.new(:queue => "special:queue", :namespace => "test")
+          worker = Pace::Worker.new("special:queue")
           worker.queue.should == "test:special:queue"
         end
       end
 
       context "when the queue argument is nil" do
-        before do
-          @pace_queue = ENV["PACE_QUEUE"]
-        end
-
-        after do
-          ENV["PACE_QUEUE"] = @pace_queue
-        end
+        before { @original_pace_queue = ENV["PACE_QUEUE"] }
+        after  { ENV["PACE_QUEUE"] = @original_pace_queue }
 
         it "falls back to the PACE_QUEUE environment variable" do
           ENV["PACE_QUEUE"] = "high"
@@ -123,7 +64,8 @@ describe Pace::Worker do
 
   describe "#start" do
     before do
-      @worker = Pace::Worker.new(:queue => "pace")
+      Resque.dequeue(Work)
+      @worker = Pace::Worker.new("pace")
     end
 
     it "yields a serialized Resque jobs" do
@@ -179,7 +121,7 @@ describe Pace::Worker do
       Resque.enqueue(Work, :n => 2)
       exception = RuntimeError.new("FAIL")
 
-      worker = Pace::Worker.new(:queue => "pace")
+      worker = Pace::Worker.new("pace")
       worker.on_error do |job, error|
         job.should == {"class" => "Work", "args" => [{"n" => 1}]}.to_json
         error.should == exception
@@ -200,7 +142,7 @@ describe Pace::Worker do
 
       results = []
 
-      worker = Pace::Worker.new(:queue => "pace")
+      worker = Pace::Worker.new("pace")
       worker.start do |job|
         worker.shutdown
         results << job["args"].first["n"]
@@ -211,45 +153,13 @@ describe Pace::Worker do
     end
   end
 
-  describe "#enqueue" do
-    class CallbackJob
-      def self.queue
-        "callback"
-      end
-    end
-
-    it "adds a new, Resque-compatible job into the specified queue" do
-      Resque.enqueue(Work)
-
-      options = {:x => 1, :y => 2}
-
-      worker = Pace::Worker.new(:queue => "pace")
-      worker.start do |job|
-        worker.enqueue(CallbackJob.queue, CallbackJob, options) {
-          EM.stop_event_loop
-        }
-      end
-
-      new_job = Resque.pop(CallbackJob.queue)
-      new_job.should == {
-        "class" => "CallbackJob",
-        "args"  => [{"x" => 1, "y" => 2}]
-      }
-
-      # It's identical to a job added w/ Resque (important!)
-      Resque.enqueue(CallbackJob, options)
-      resque_job = Resque.pop(CallbackJob.queue)
-      resque_job.should == new_job
-    end
-  end
-
   describe "signal handling" do
     before do
       Resque.enqueue(Work, :n => 1)
       Resque.enqueue(Work, :n => 2)
       Resque.enqueue(Work, :n => 3)
 
-      @worker = Pace::Worker.new(:queue => "pace")
+      @worker = Pace::Worker.new("pace")
     end
 
     ["QUIT", "TERM", "INT"].each do |signal|

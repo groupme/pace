@@ -34,7 +34,7 @@ module Pace
             jobs = nil
 
             EM.run do
-              @redis = EM::Protocols::Redis.connect(@options)
+              @redis = Pace.redis_connect
               @redis.lrange(queue, 0, -1) do |jobs|
                 jobs.each do |job|
                   block.call JSON.parse(job)

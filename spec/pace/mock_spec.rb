@@ -23,7 +23,7 @@ describe Pace::Mock do
       Resque.enqueue(Work, :n => 2)
 
       results = []
-      worker = Pace::Worker.new(:queue => "pace")
+      worker = Pace::Worker.new("pace")
       worker.start { |job| results << job }
       results.should == [
         {"class" => "Work", "args" => [{"n" => 1}]},
@@ -44,7 +44,7 @@ describe Pace::Mock do
       Resque.enqueue(Work, :n => 2)
 
       results = []
-      worker = Pace::Worker.new(:queue => "pace")
+      worker = Pace::Worker.new("pace")
       worker.start do |job|
         results << job
       end
@@ -60,7 +60,7 @@ describe Pace::Mock do
       Resque.enqueue(Work, :n => 2)
 
       results = []
-      worker = Pace::Worker.new(:queue => "pace")
+      worker = Pace::Worker.new("pace")
       worker.start do |job|
         results << job
         EM.stop_event_loop
