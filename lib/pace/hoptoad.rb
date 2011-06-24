@@ -14,6 +14,10 @@
 #
 begin
   require 'hoptoad_notifier'
+
+  # HoptoadNotifier requires active_support anyway,
+  # but forgot to load their actual dependencies.
+  require "active_support/core_ext"
 rescue LoadError
   raise "Can't find 'hoptoad_notifier' gem. Please add it to your Gemfile or install it."
 end
