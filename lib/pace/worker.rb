@@ -26,7 +26,7 @@ module Pace
           log "load averages: #{$load.join(' ')}"
         end
 
-        @redis = Pace.redis_connect
+        @redis = Pace.redis
         fetch_next_job
       end
     end
