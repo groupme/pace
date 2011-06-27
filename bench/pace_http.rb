@@ -1,4 +1,4 @@
-# Benchmark Pace
+# Benchmark Pace making HTTP calls
 #
 # Performed by running:
 #
@@ -15,7 +15,7 @@
 
 require "pace"
 
-Pace.logger = Logger.new(File.join(File.dirname(__FILE__), "pace.log"))
+Pace.logger = Logger.new(File.join(File.dirname(__FILE__), "pace_http.log"))
 Pace.log("Starting #{'%0.6f' % Time.now}")
 
 Pace.start do |job|

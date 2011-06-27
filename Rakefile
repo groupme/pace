@@ -2,40 +2,44 @@ require 'bundler'
 require "resque/tasks"
 Bundler::GemHelper.install_tasks
 
-$: << File.join(File.dirname(__FILE__), "bench")
-$: << File.join(File.dirname(__FILE__), "examples")
+$: << File.dirname(__FILE__)
 
 namespace :examples do
   desc "Simply echo jobs to the console"
   task :echo do
-    require "echo"
+    require "examples/echo"
   end
 
   desc "Serial processing when the block doesn't defer"
   task :sleep do
-    require "sleep"
+    require "examples/sleep"
   end
 
   desc "Concurrent processing using EM.defer"
   task :defer do
-    require "defer"
+    require "examples/defer"
   end
 
   desc "Concurrent processing by blocking on an HTTP connection"
   task :http do
-    require "http"
+    require "examples/http"
   end
 end
 
 namespace :bench do
-  desc "Fire up Pace for benchmarking"
-  task :pace do
-    ENV["PACE_QUEUE"] = "normal"
-    require "pace_http"
+  desc "Bench Pace just running through its loop"
+  task :pace_simple do
+    require "bench/pace_simple"
   end
 
-  desc "Fire up Resque for benchmarking"
-  task :resque do
+  desc "Bench HTTP calls through Pace"
+  task :pace_http do
+    ENV["PACE_QUEUE"] = "normal"
+    require "bench/pace_http"
+  end
+
+  desc "Bench HTTP calls through Resque"
+  task :resque_http do
     ENV["COUNT"]   = "10"
     ENV["QUEUE"]   = "normal"
     # ENV["VERBOSE"] = "1"
@@ -58,6 +62,6 @@ end
 # For benchmark purposes
 namespace :resque do
   task :setup do
-    require "resque_http"
+    require "bench/resque_http"
   end
 end

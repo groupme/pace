@@ -36,6 +36,6 @@ class ResqueHttp
   end
 
   def self.logger
-    @logger ||= Logger.new(File.join(File.dirname(__FILE__), "resque.log"))
+    @logger ||= Logger.new(File.join(File.dirname(__FILE__), "resque_http.log"))
   end
 end
