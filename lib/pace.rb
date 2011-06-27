@@ -28,9 +28,11 @@ module Pace
 
     def enqueue(queue, klass, *args, &block)
       # Create a Redis instance that sticks around for enqueuing
+      @redis ||= redis_connect
+
       queue = full_queue_name(queue)
       job   = {:class => klass.to_s, :args => args}.to_json
-      redis.rpush(queue, job, &block)
+      @redis.rpush(queue, job, &block)
     end
 
     def full_queue_name(queue)
@@ -38,10 +40,6 @@ module Pace
       parts.unshift("resque:queue") unless queue.index(":")
       parts.unshift(namespace) unless namespace.nil?
       parts.join(":")
-    end
-
-    def redis
-      @redis ||= redis_connect
     end
 
     def redis_connect
