@@ -18,7 +18,6 @@ Gem::Specification.new do |s|
   s.executables   = `git ls-files -- bin/*`.split("\n").map{ |f| File.basename(f) }
   s.require_paths = ["lib"]
 
-  s.add_dependency "eventmachine", "1.0.0.beta.3"
   s.add_dependency "em-redis", ">= 0.3.0"
 
   s.add_development_dependency "resque", "~> 1.17.1"
