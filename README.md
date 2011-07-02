@@ -20,3 +20,18 @@ enqueuing Resque jobs:
     > class MyJob; def self.queue; "normal"; end; end
     > Resque.enqueue(MyJob)
     > 10.times { |n| Resque.enqueue(MyJob, :n => n) }
+
+## Single Queue
+
+    Pace.start(:queue => "normal") do |job|
+      ...
+    end
+
+## Multiple Queues
+
+Like Resque, you can specify multiple queues:
+
+    Pace.start(:queues => ["low", "high"]) do |job|
+      ...
+    end
+    

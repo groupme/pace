@@ -13,9 +13,9 @@ module Pace
     def start(options = {}, &block)
       @options   = options.dup
       @namespace = @options.delete(:namespace) if @options[:namespace]
-      queue      = @options.delete(:queue)
+      queues     = @options.delete(:queue) || @options.delete(:queues)
 
-      Pace::Worker.new(queue).start(&block)
+      Pace::Worker.new(queues).start(&block)
     end
 
     def log(message, start_time = nil)
@@ -33,6 +33,10 @@ module Pace
       queue = full_queue_name(queue)
       job   = {:class => klass.to_s, :args => args}.to_json
       @redis.rpush(queue, job, &block)
+    end
+
+    def full_queue_names(queues)
+      queues.map { |queue| full_queue_name(queue) }
     end
 
     def full_queue_name(queue)

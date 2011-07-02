@@ -3,12 +3,19 @@ require "spec_helper"
 describe Pace::Worker do
   class Work
     def self.queue
-      "pace"
+      "pace" # change to 'work'
+    end
+  end
+
+  class Play
+    def self.queue
+      "play"
     end
   end
 
   before do
     Resque.dequeue(Work)
+    Resque.dequeue(Play)
   end
 
   describe "#initialize" do
@@ -16,14 +23,14 @@ describe Pace::Worker do
       context "when the given name has no colons" do
         it "prepends the Resque default queue 'namespace'" do
           worker = Pace::Worker.new("normal")
-          worker.queue.should == "resque:queue:normal"
+          worker.queues.should == ["resque:queue:normal"]
         end
       end
 
       context "when the given name has colons" do
         it "does not prepend anything (like an absolute path)" do
           worker = Pace::Worker.new("my:special:queue")
-          worker.queue.should == "my:special:queue"
+          worker.queues.should == ["my:special:queue"]
         end
       end
 
@@ -33,10 +40,10 @@ describe Pace::Worker do
 
         it "prepends the namespace in either case" do
           worker = Pace::Worker.new("normal")
-          worker.queue.should == "test:resque:queue:normal"
+          worker.queues.should == ["test:resque:queue:normal"]
 
           worker = Pace::Worker.new("special:queue")
-          worker.queue.should == "test:special:queue"
+          worker.queues.should == ["test:special:queue"]
         end
       end
 
@@ -47,11 +54,19 @@ describe Pace::Worker do
         it "falls back to the PACE_QUEUE environment variable" do
           ENV["PACE_QUEUE"] = "high"
           worker = Pace::Worker.new
-          worker.queue.should == "resque:queue:high"
+          worker.queues.should == ["resque:queue:high"]
 
           ENV["PACE_QUEUE"] = "my:special:queue"
           worker = Pace::Worker.new
-          worker.queue.should == "my:special:queue"
+          worker.queues.should == ["my:special:queue"]
+
+          ENV["PACE_QUEUE"] = "low,high"
+          worker = Pace::Worker.new
+          worker.queues.should == ["resque:queue:low", "resque:queue:high"]
+
+          ENV["PACE_QUEUE"] = "my:special:queue,other:special:queue"
+          worker = Pace::Worker.new
+          worker.queues.should == ["my:special:queue", "other:special:queue"]
         end
 
         it "throws an exception if PACE_QUEUE is nil" do
@@ -63,55 +78,88 @@ describe Pace::Worker do
   end
 
   describe "#start" do
-    before do
-      Resque.dequeue(Work)
-      @worker = Pace::Worker.new("pace")
-    end
+    describe "with a single queue" do
+      before do
+        Resque.dequeue(Work)
+        @worker = Pace::Worker.new("pace")
+      end
 
-    it "yields a serialized Resque jobs" do
-      Resque.enqueue(Work, :foo => 1, :bar => 2)
+      it "yields a serialized Resque jobs" do
+        Resque.enqueue(Work, :foo => 1, :bar => 2)
 
-      @worker.start do |job|
-        job["class"].should == "Work"
-        job["args"].should == [{"foo" => 1, "bar" => 2}]
-        EM.stop_event_loop
+        @worker.start do |job|
+          job["class"].should == "Work"
+          job["args"].should == [{"foo" => 1, "bar" => 2}]
+          EM.stop_event_loop
+        end
+      end
+
+      it "continues to pop jobs until stopped" do
+        Resque.enqueue(Work, :n => 1)
+        Resque.enqueue(Work, :n => 2)
+        Resque.enqueue(Work, :n => 3)
+        Resque.enqueue(Work, :n => 4)
+        Resque.enqueue(Work, :n => 5)
+
+        results = []
+
+        @worker.start do |job|
+          n = job["args"].first["n"]
+          results << n
+          EM.stop_event_loop if n == 5
+        end
+
+        results.should == [1, 2, 3, 4, 5]
+      end
+
+      it "rescues any errors in the passed block" do
+        Resque.enqueue(Work, :n => 1)
+        Resque.enqueue(Work, :n => 2)
+        Resque.enqueue(Work, :n => 3)
+
+        results = []
+
+        @worker.start do |job|
+          n = job["args"].first["n"]
+
+          raise "FAIL" if n == 1
+          results << n
+          EM.stop_event_loop if n == 3
+        end
+
+        results.should == [2, 3]
       end
     end
 
-    it "continues to pop jobs until stopped" do
-      Resque.enqueue(Work, :n => 1)
-      Resque.enqueue(Work, :n => 2)
-      Resque.enqueue(Work, :n => 3)
-      Resque.enqueue(Work, :n => 4)
-      Resque.enqueue(Work, :n => 5)
-
-      results = []
-
-      @worker.start do |job|
-        n = job["args"].first["n"]
-        results << n
-        EM.stop_event_loop if n == 5
+    describe "with multiple queues" do
+      before do
+        Resque.dequeue(Work)
+        Resque.dequeue(Play)
+        @worker = Pace::Worker.new(["pace", "play"])
       end
 
-      results.should == [1, 2, 3, 4, 5]
-    end
+      it "continues to pop jobs until stopped" do
+        Resque.enqueue(Work, :n => 1)
+        Resque.enqueue(Play, :n => "a")
+        Resque.enqueue(Work, :n => 2)
+        Resque.enqueue(Play, :n => "b")
+        Resque.enqueue(Work, :n => 3)
+        Resque.enqueue(Play, :n => "c")
+        Resque.enqueue(Work, :n => 4)
+        Resque.enqueue(Play, :n => "d")
+        Resque.enqueue(Work, :n => 5)
+        Resque.enqueue(Play, :n => "e")
 
-    it "rescues any errors in the passed block" do
-      Resque.enqueue(Work, :n => 1)
-      Resque.enqueue(Work, :n => 2)
-      Resque.enqueue(Work, :n => 3)
+        results = []
 
-      results = []
+        @worker.start do |job|
+          n = job["args"].first["n"]
+          results << n
+          EM.stop_event_loop if results.size == 10
+        end
 
-      @worker.start do |job|
-        n = job["args"].first["n"]
-
-        raise "FAIL" if n == 1
-        results << n
-        EM.stop_event_loop if n == 3
+        results.should == [1, "a", 2, "b", 3, "c", 4, "d", 5, "e"]
       end
-
-      results.should == [2, 3]
     end
   end
 
@@ -126,7 +174,6 @@ describe Pace::Worker do
 
       # Error handler 1
       worker.on_error do |job, error|
-        job.should == {"class" => "Work", "args" => [{"n" => 1}]}.to_json
         errors << error
       end
 

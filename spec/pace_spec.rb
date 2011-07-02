@@ -66,6 +66,16 @@ describe Pace do
 
       Pace.start({:queue => "pace"}, &block)
     end
+
+    it "accpets multiple queues" do
+      block = Proc.new { "WOOOO!" }
+
+      worker = double(Pace::Worker)
+      worker.should_receive(:start).with(&block)
+      Pace::Worker.should_receive(:new).with(["pace", "picante"]).and_return(worker)
+
+      Pace.start({:queues => ["pace", "picante"]}, &block)
+    end
   end
 
   describe ".enqueue" do

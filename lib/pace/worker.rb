@@ -1,15 +1,16 @@
 module Pace
   class Worker
-    attr_reader :queue
+    attr_reader :queues
 
-    def initialize(queue = nil)
-      queue ||= ENV["PACE_QUEUE"]
+    def initialize(queues = nil)
+      queues ||= ENV["PACE_QUEUE"]
 
-      if queue.nil? || queue.empty?
+      if queues.nil? || queues.empty?
         raise ArgumentError.new("Queue unspecified -- pass a queue name or set PACE_QUEUE")
       end
 
-      @queue = Pace.full_queue_name(queue)
+      queues = queues.split(",") if queues.is_a?(String)
+      @queues = Pace.full_queue_names(queues)
       @error_callbacks = []
     end
 
@@ -42,10 +43,10 @@ module Pace
 
     private
 
-    def fetch_next_job
-      @redis.blpop(queue, 0) do |queue, job|
-        EM.next_tick { fetch_next_job }
-
+    def fetch_next_job(index = 0)
+      queue = queues[index] || queues[index = 0]
+      @redis.lpop(queue) do |job|
+        EM.next_tick { fetch_next_job(index + 1) }
         begin
           @block.call JSON.parse(job)
           Pace::LoadAverage.tick
