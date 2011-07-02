@@ -35,11 +35,23 @@ module Pace
 
             EM.run do
               @redis = Pace.redis_connect
+              empty_queues(block)
+            end
+          end
+
+          def empty_queues(block, index = 0)
+            if queue = queues[index]
               @redis.lrange(queue, 0, -1) do |jobs|
                 jobs.each do |job|
                   block.call JSON.parse(job)
                 end
-                @redis.del(queue) { EM.stop_event_loop }
+                @redis.del(queue) {
+                  if queue == queues.last
+                    EM.stop_event_loop
+                  else
+                    empty_queues(block, index + 1)
+                  end
+                }
               end
             end
           end
