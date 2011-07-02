@@ -47,6 +47,7 @@ module Pace
       queue = queues[index] || queues[index = 0]
       @redis.lpop(queue) do |job|
         EM.next_tick { fetch_next_job(index + 1) }
+        return unless job
         begin
           @block.call JSON.parse(job)
           Pace::LoadAverage.tick
