@@ -66,7 +66,7 @@ module Pace
       Pace.logger.info "Disabling Pace mock"
 
       Pace::Worker.class_eval do
-        if instance_methods.include?(:start_without_mock)
+        if method_defined?(:start_without_mock)
           alias :start :start_without_mock
         end
       end
