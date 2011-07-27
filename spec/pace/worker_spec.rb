@@ -258,4 +258,34 @@ describe Pace::Worker do
       end
     end
   end
+
+  describe "pausing and resuing" do
+    before do
+      @worker = Pace::Worker.new("pace")
+    end
+
+    it "pauses the reactor and resumes it" do
+      Resque.enqueue(Work, :n => 1)
+      Resque.enqueue(Work, :n => 2)
+      Resque.enqueue(Work, :n => 3)
+
+      results = []
+
+      worker = Pace::Worker.new("pace")
+      worker.start do |job|
+        n = job["args"].first["n"]
+        if n == 1
+          worker.pause
+          EM.add_timer(0.1) { worker.resume } # wait a little
+        elsif n >= 3
+          worker.shutdown
+        end
+        results << Time.now.to_f
+      end
+
+      # Check if we actually paused
+      (results[1] - results[0]).should > 0.1
+      (results[2] - results[0]).should > 0.1
+    end
+  end
 end

@@ -34,4 +34,15 @@ Like Resque, you can specify multiple queues:
     Pace.start(:queues => ["low", "high"]) do |job|
       ...
     end
+
+## Pausing and resuming
+
+If you need to pause a pace, simply:
+
+    Pace.pause
+    
+And when ready:
+
+    Pace.resume
+    
     

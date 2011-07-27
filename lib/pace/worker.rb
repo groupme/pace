@@ -12,6 +12,7 @@ module Pace
       queues = queues.split(",") if queues.is_a?(String)
       @queues = Pace.full_queue_names(queues)
       @error_callbacks = []
+      @paused = false
     end
 
     def start(&block)
@@ -32,6 +33,15 @@ module Pace
       end
     end
 
+    def pause
+      @paused = true
+    end
+
+    def resume
+      @paused = false
+      EM.next_tick { fetch_next_job }
+    end
+
     def shutdown
       log "Shutting down"
       EM.stop_event_loop
@@ -44,6 +54,7 @@ module Pace
     private
 
     def fetch_next_job(index = 0)
+      return if @paused
       queue = queues[index] || queues[index = 0]
       @redis.lpop(queue) do |job|
         EM.next_tick { fetch_next_job(index + 1) }

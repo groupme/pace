@@ -106,4 +106,26 @@ describe Pace do
       resque_job.should == new_job
     end
   end
+
+  describe ".pause" do
+    it "pauses the worker" do
+      worker = double(Pace::Worker, :start => true)
+      worker.should_receive(:pause).once
+      Pace::Worker.stub(:new).and_return(worker)
+
+      Pace.start
+      Pace.pause
+    end
+  end
+
+  describe ".resume" do
+    it "resumes the worker" do
+      worker = double(Pace::Worker, :start => true)
+      worker.should_receive(:resume).once
+      Pace::Worker.stub(:new).and_return(worker)
+
+      Pace.start
+      Pace.resume
+    end
+  end
 end

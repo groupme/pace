@@ -15,7 +15,16 @@ module Pace
       @namespace = @options.delete(:namespace) if @options[:namespace]
       queues     = @options.delete(:queue) || @options.delete(:queues)
 
-      Pace::Worker.new(queues).start(&block)
+      @worker = Pace::Worker.new(queues)
+      @worker.start(&block)
+    end
+
+    def pause
+      @worker.pause
+    end
+
+    def resume
+      @worker.resume
     end
 
     def log(message, start_time = nil)
