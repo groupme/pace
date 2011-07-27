@@ -60,16 +60,17 @@ module Pace
     def fetch_next_job(index = 0)
       return if @paused
       queue = queues[index] || queues[index = 0]
-      @redis.lpop(queue) do |job|
+      @redis.lpop(queue) do |json|
         EM.next_tick { fetch_next_job(index + 1) }
-        if job
+        if json
           begin
-            @block.call JSON.parse(job)
+            job = JSON.parse(json)
+            @block.call(job)
             Pace::Info.log(queue, job)
             Pace::LoadAverage.tick
           rescue Exception => e
-            log_failed_job("Job failed!", job, e)
-            fire_error_callbacks(job, e)
+            log_failed_job("Job failed!", json, e)
+            fire_error_callbacks(json, e)
           end
         end
       end
