@@ -23,9 +23,13 @@ module Pace
 
       EM.run do
         EM.epoll # Change to kqueue for BSD kernels
-        EventMachine::add_periodic_timer(Pace::LoadAverage::INTERVAL) do
+
+        EventMachine::add_periodic_timer(PACE_HEARTBEAT) do
           Pace::LoadAverage.compute
           log "load averages: #{$load.join(' ')}"
+
+          Pace::Info.save
+          log "saved info to redis"
         end
 
         @redis = Pace.redis_connect

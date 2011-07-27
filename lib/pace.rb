@@ -1,3 +1,5 @@
+PACE_HEARTBEAT = 10.0 # seconds
+
 require "eventmachine"
 require "em-redis"
 require "json"
@@ -15,8 +17,6 @@ module Pace
       @options   = options.dup
       @namespace = @options.delete(:namespace) if @options[:namespace]
       queues     = @options.delete(:queue) || @options.delete(:queues)
-
-      EM.add_periodic_timer(10) { Pace::Info.save }
 
       @worker = Pace::Worker.new(queues)
       @worker.start(&block)
