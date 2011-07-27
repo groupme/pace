@@ -1,5 +1,7 @@
 require 'bundler'
 require "resque/tasks"
+require "rspec/core/rake_task"
+
 Bundler::GemHelper.install_tasks
 
 $: << File.dirname(__FILE__)
@@ -65,3 +67,10 @@ namespace :resque do
     require "bench/resque_http"
   end
 end
+
+desc "Run specs"
+RSpec::Core::RakeTask.new(:spec) do |t|
+  t.pattern = "spec/**/*_spec.rb"
+end
+
+task :default => :spec

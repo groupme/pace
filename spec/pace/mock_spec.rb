@@ -2,21 +2,19 @@ require "spec_helper"
 require "pace/mock"
 
 describe Pace::Mock do
-  class Work
-    def self.queue
-      "work"
-    end
-  end
-
-  class Play
-    def self.queue
-      "play"
-    end
-  end
-
   before do
-    Resque.dequeue(Work)
-    Resque.dequeue(Play)
+    @work = Class.new do
+      def self.to_s;  "Work"; end
+      def self.queue; "work"; end
+    end
+
+    @play = Class.new do
+      def self.to_s;  "Play"; end
+      def self.queue; "play"; end
+    end
+
+    Resque.dequeue(@work)
+    Resque.dequeue(@play)
   end
 
   after do
@@ -26,11 +24,11 @@ describe Pace::Mock do
   describe ".enable" do
     it "sets up the mock, which simply passes down Resque jobs and closes the event loop" do
       Pace::Mock.enable
-      Resque.enqueue(Work, :n => 1)
-      Resque.enqueue(Work, :n => 2)
+      Resque.enqueue(@work, :n => 1)
+      Resque.enqueue(@work, :n => 2)
 
       results = []
-      worker = Pace::Worker.new("work")
+      worker = Pace::Worker.new(@work.queue)
       worker.start { |job| results << job }
       results.should == [
         {"class" => "Work", "args" => [{"n" => 1}]},
@@ -45,13 +43,13 @@ describe Pace::Mock do
 
     it "works with multiple queues" do
       Pace::Mock.enable
-      Resque.enqueue(Work, :n => 1)
-      Resque.enqueue(Work, :n => 2)
-      Resque.enqueue(Play, :n => "a")
-      Resque.enqueue(Play, :n => "b")
+      Resque.enqueue(@work, :n => 1)
+      Resque.enqueue(@work, :n => 2)
+      Resque.enqueue(@play, :n => "a")
+      Resque.enqueue(@play, :n => "b")
 
       results = []
-      worker = Pace::Worker.new(["work", "play"])
+      worker = Pace::Worker.new([@work.queue, @play.queue])
       worker.start { |job| results << job }
       results.should == [
         {"class" => "Work", "args" => [{"n" => 1}]},
@@ -71,10 +69,10 @@ describe Pace::Mock do
       Pace::Mock.disable
       Pace::Mock.enable
 
-      Resque.enqueue(Work, :n => 2)
+      Resque.enqueue(@work, :n => 2)
 
       results = []
-      worker = Pace::Worker.new("work")
+      worker = Pace::Worker.new(@work.queue)
       worker.start do |job|
         results << job
       end
@@ -86,11 +84,11 @@ describe Pace::Mock do
     it "tears down the mock and re-institutes the event loop" do
       Pace::Mock.enable
       Pace::Mock.disable
-      Resque.enqueue(Work, :n => 1)
-      Resque.enqueue(Work, :n => 2)
+      Resque.enqueue(@work, :n => 1)
+      Resque.enqueue(@work, :n => 2)
 
       results = []
-      worker = Pace::Worker.new("work")
+      worker = Pace::Worker.new(@work.queue)
       worker.start do |job|
         results << job
         EM.stop_event_loop
