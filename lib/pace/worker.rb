@@ -61,6 +61,7 @@ module Pace
         if job
           begin
             @block.call JSON.parse(job)
+            Pace::Info.log(queue, job)
             Pace::LoadAverage.tick
           rescue Exception => e
             log_failed_job("Job failed!", job, e)
