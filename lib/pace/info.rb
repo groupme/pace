@@ -27,16 +27,16 @@ module Pace
 
       def save
         redis.hset("pace:info", "updated_at", Time.now.to_i)
-        redis.hincr("pace:info", "processed", processed)
+        redis.hincrby("pace:info", "processed", processed)
 
         classes.each do |klass, count|
-          redis.hincr("pace:info:classes", klass, count)
+          redis.hincrby("pace:info:classes", klass, count)
         end
 
         queues.each do |queue, info|
           redis.hset("pace:info:queues:#{queue}", "updated_at", Time.now.to_i)
           redis.hset("pace:info:queues:#{queue}", "last_job_at", info[:last_job_at])
-          redis.hincr("pace:info:queues:#{queue}", "processed", info[:processed])
+          redis.hincrby("pace:info:queues:#{queue}", "processed", info[:processed])
         end
 
         reset
