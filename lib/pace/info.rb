@@ -43,15 +43,15 @@ module Pace
       end
 
       def processed
-        @processed
+        @processed || 0
       end
 
       def queues
-        @queues
+        @queues || {}
       end
 
       def classes
-        @classes
+        @classes || {}
       end
 
       def reset
