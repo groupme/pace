@@ -2,6 +2,16 @@ module Pace
   class Worker
     attr_reader :queues
 
+    class << self
+      def on_error(&callback)
+        global_error_callbacks << callback
+      end
+
+      def global_error_callbacks
+        @global_error_callbacks ||= []
+      end
+    end
+
     def initialize(queues = nil)
       queues ||= ENV["PACE_QUEUE"]
 
@@ -9,8 +19,7 @@ module Pace
         raise ArgumentError.new("Queue unspecified -- pass a queue name or set PACE_QUEUE")
       end
 
-      queues = queues.split(",") if queues.is_a?(String)
-      @queues = Pace.full_queue_names(queues)
+      @queues = expand_queue_names(queues)
       @error_callbacks = []
       @paused = false
     end
@@ -31,6 +40,15 @@ module Pace
         @redis = Pace.redis_connect
         fetch_next_job
       end
+    end
+
+    def enqueue(queue, klass, *args, &block)
+      # Create a Redis instance that sticks around for enqueuing
+      @enqueue_redis ||= Pace.redis_connect
+
+      queue = expand_queue_name(queue)
+      job   = {:class => klass.to_s, :args => args}.to_json
+      @enqueue_redis.rpush(queue, job, &block)
     end
 
     def pause
@@ -80,6 +98,18 @@ module Pace
       Pace.logger.info(message)
     end
 
+    def expand_queue_names(queues)
+      queues = queues.split(",") if queues.is_a?(String)
+      queues.map { |queue| expand_queue_name(queue) }
+    end
+
+    def expand_queue_name(queue)
+      parts = [queue]
+      parts.unshift("resque:queue") unless queue.index(":")
+      parts.unshift(Pace.namespace) unless Pace.namespace.nil?
+      parts.join(":")
+    end
+
     def log_failed_job(message, job, exception)
       message = "#{message}\n#{job}\n#{exception.message}\n"
       message << exception.backtrace.join("\n")
@@ -88,7 +118,7 @@ module Pace
 
     def fire_error_callbacks(job, error)
       begin
-        (Pace.error_callbacks + @error_callbacks).each do |callback|
+        (Pace::Worker.global_error_callbacks + @error_callbacks).each do |callback|
           callback.call(job, error)
         end
       rescue Exception => e
