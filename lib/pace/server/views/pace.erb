@@ -42,7 +42,7 @@
     <th>Updated</th>
   </tr>
   <% if pace_info[:workers].present? %>
-    <% pace[:info][:workers].each do |id, info| %>
+    <% pace_info[:workers].each do |id, info| %>
       <tr>
         <td><%= id %></td>
         <td><%= info[:queues] %></td>
