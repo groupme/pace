@@ -7,11 +7,15 @@
 <table>
   <tr>
     <th>Updated at</th>
-    <td><%= pace_info[:updated_at] %>
+    <td><%= pace_info[:updated_at] || "No information" %></td>
+  </tr>
+  <tr>
     <th>Jobs Processed</th>
-    <td><%= pace_info[:processed] %>
+    <td><%= pace_info[:processed] || "No information" %></td>
   </tr>
 </table>
+
+<hr />
 
 <h1>Queues</h1>
 <p class="info">
@@ -40,6 +44,8 @@
     </tr>
   <% end %>
 </table>
+
+<hr />
 
 <h1>0 of 0 working</h1>
 <p class="info">
