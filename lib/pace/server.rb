@@ -17,7 +17,7 @@ module Pace
               :last_job_at  => last_job_at,
               :classes      => pace_classes,
               :workers      => pace_workers,
-              :queues       => queues,
+              :queues       => queues
             }
           end
 
@@ -43,7 +43,7 @@ module Pace
             end
             Hash[classes.sort]
           end
-          
+
           def pace_workers
             workers = {}
             Resque.redis.keys("pace:info:workers:*").each do |key|
@@ -57,7 +57,7 @@ module Pace
                 }
               end
             end
-            queues
+            workers
           end
 
           # reads a 'local' template file.
