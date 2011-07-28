@@ -22,7 +22,7 @@ rescue LoadError
   raise "Can't find 'hoptoad_notifier' gem. Please add it to your Gemfile or install it."
 end
 
-Pace.on_error do |job, error|
+Pace::Worker.on_error do |job, error|
   EM.defer do
     HoptoadNotifier.notify_or_ignore(error,
       :parameters => {:job => job},

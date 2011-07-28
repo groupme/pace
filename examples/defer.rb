@@ -3,7 +3,8 @@
 
 require "pace"
 
-Pace.start(:queue => (ENV["PACE_QUEUE"] || "normal")) do |job|
+worker = Pace::Worker.new(ENV["PACE_QUEUE"] || "normal")
+worker.start do |job|
   start_time = Time.now
 
   operation = proc {

@@ -52,7 +52,7 @@ namespace :bench do
   desc "Inject jobs for benchmarking"
   task :jobs do
     require "resque"
-    require "resque_http"
+    require "bench/resque_http"
 
     count = (ENV["COUNT"] || 100).to_i
     count.times do |n|

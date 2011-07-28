@@ -6,8 +6,9 @@
 
 require "pace"
 
-Pace.start(:queue => (ENV["PACE_QUEUE"] || "normal")) do |job|
+worker = Pace::Worker.new(ENV["PACE_QUEUE"] || "normal")
+worker.start do |job|
   start_time = Time.now
   rand(10).times { sleep 0.1 }
-  Pace.log(job.inspect, start_time)
+  worker.log(job.inspect, start_time)
 end
