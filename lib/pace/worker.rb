@@ -69,6 +69,10 @@ module Pace
       @error_callbacks << callback
     end
 
+    def log(message, start_time = nil)
+      Pace.log(message, start_time)
+    end
+
     private
 
     def fetch_next_job
@@ -91,10 +95,6 @@ module Pace
       trap('TERM') { shutdown }
       trap('QUIT') { shutdown }
       trap('INT')  { shutdown }
-    end
-
-    def log(message)
-      Pace.logger.info(message)
     end
 
     def setup_queue(queue)

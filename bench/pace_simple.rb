@@ -10,12 +10,14 @@ class Work
   def self.queue; "pace"; end
 end
 
+Pace.logger.info "Starting benchmark..."
+
 50_000.times { |n| Resque.enqueue(Work, :n => n) }
 Pace.logger.info "Finished adding 50,000 jobs"
 
 start_time, end_time = Time.now, nil
 
-Pace.start(:queue => Work.queue) do |job|
+Pace::Worker.new(Work.queue).start do |job|
   n = job["args"][0]["n"]
 
   if n == 49_999

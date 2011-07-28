@@ -18,7 +18,7 @@ require "pace"
 Pace.logger = Logger.new(File.join(File.dirname(__FILE__), "pace_http.log"))
 Pace.log("Starting #{'%0.6f' % Time.now}")
 
-Pace.start do |job|
+Pace::Worker.new.start do |job|
   start_time = Time.now
   args = job["args"][0].map { |k,v| "#{k}=#{v}" }
   args = args.join("&")
