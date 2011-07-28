@@ -48,7 +48,7 @@
         <td><%= info[:queues] %></td>
         <td><%= info[:processed] && number_with_delimiter(info[:processed]) %></td>
         <td><%= distance_of_time_in_words(info[:created_at], Time.now) %> ago</td>
-        <td><%= distance_of_time_in_words(info[:updated_at], Time.now) %> ago</td>
+        <td><%= info[:updated_at] && distance_of_time_in_words(info[:updated_at], Time.now) + " ago" %></td>
       </tr>
     <% end %>
   <% else %>
