@@ -20,14 +20,16 @@ module Pace
           def pace_queues
             queues = {}
             Resque.redis.keys("pace:info:queues:*").each do |key|
-              queue = key.gsub("pace:info:queues:", "")
-              info = Resque.redis.hgetall(key)
-              queues[queue] = {
-                :updated_at   => info["updated_at"] && Time.at(info["updated_at"].to_i),
-                :last_job_at  => info["last_job_at"] && Time.at(info["last_job_at"].to_i),
-                :processed    => info["processed"]
-              }
+              queue = key.gsub("pace:info:queues:resque:queues:", "")
+              if info = Resque.redis.hgetall(key)
+                queues[queue] = {
+                  :updated_at   => info["updated_at"] && Time.at(info["updated_at"].to_i),
+                  :last_job_at  => info["last_job_at"] && Time.at(info["last_job_at"].to_i),
+                  :processed    => info["processed"]
+                }
+              end
             end
+            queues
           end
 
           # reads a 'local' template file.
