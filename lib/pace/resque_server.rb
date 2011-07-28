@@ -14,7 +14,7 @@ module Pace
             {
               :updated_at   => info["updated_at"] && Time.at(info["updated_at"].to_i),
               :last_job_at  => last_job_at,
-              :processed    => info["processed"],
+              :processed    => info["processed"].to_i,
               :classes      => pace_classes,
               :queues       => queues,
               :workers      => []

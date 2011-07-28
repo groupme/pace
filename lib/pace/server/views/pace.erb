@@ -20,7 +20,7 @@
     <% end %>
   <% end %>
   <tr class="failed">
-    <td><b>all</b></td>
+    <td>total</td>
     <td><%= pace_info[:processed] && number_with_delimiter(pace_info[:processed]) %></td>
     <td><%= pace_info[:last_job_at] && distance_of_time_in_words(pace_info[:last_job_at], Time.now) + " ago" %></td>
   </tr>
