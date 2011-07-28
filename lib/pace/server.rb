@@ -1,6 +1,6 @@
 # Extend Resque::Server to add tabs.
 module Pace
-  module ResqueServer
+  module Server
     include ActionView::Helpers::DateHelper
     include ActionView::Helpers::NumberHelper
 
@@ -16,8 +16,8 @@ module Pace
               :updated_at   => info["updated_at"] && Time.at(info["updated_at"].to_i),
               :last_job_at  => last_job_at,
               :classes      => pace_classes,
+              :workers      => pace_workers,
               :queues       => queues,
-              :workers      => []
             }
           end
 
@@ -29,7 +29,7 @@ module Pace
                 queues[queue] = {
                   :updated_at   => info["updated_at"] && Time.at(info["updated_at"].to_i),
                   :last_job_at  => info["last_job_at"] && Time.at(info["last_job_at"].to_i),
-                  :processed    => info["processed"]
+                  :processed    => info["processed"].to_i
                 }
               end
             end
@@ -42,6 +42,22 @@ module Pace
               classes[name] = processed.to_i
             end
             Hash[classes.sort]
+          end
+          
+          def pace_workers
+            workers = {}
+            Resque.redis.keys("pace:info:workers:*").each do |key|
+              id = key.gsub("pace:info:workers:", "")
+              if info = Resque.redis.hgetall(key)
+                workers[id] = {
+                  :created_at   => info["created_at"] && Time.at(info["created_at"].to_i),
+                  :updated_at   => info["updated_at"] && Time.at(info["updated_at"].to_i),
+                  :queues       => info["queues"],
+                  :processed    => info["processed"].to_i
+                }
+              end
+            end
+            queues
           end
 
           # reads a 'local' template file.
@@ -62,5 +78,5 @@ end
 
 Resque::Server.tabs << 'Pace'
 Resque::Server.class_eval do
-  include Pace::ResqueServer
+  include Pace::Server
 end

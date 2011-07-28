@@ -4,11 +4,14 @@ require "eventmachine"
 require "em-redis"
 require "json"
 require "uri"
+require "uuid"
 require "logger"
 require "pace/info"
 require "pace/load_average"
 require "pace/worker"
 require "pace/multi_queue_worker"
+
+$uuid = UUID.new
 
 module Pace
   class << self

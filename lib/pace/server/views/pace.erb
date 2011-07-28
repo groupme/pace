@@ -19,7 +19,7 @@
       </tr>
     <% end %>
   <% end %>
-  <tr class="failed">
+  <tr>
     <td>total</td>
     <td><%= pace_info[:processed] && number_with_delimiter(pace_info[:processed]) %></td>
     <td><%= pace_info[:last_job_at] && distance_of_time_in_words(pace_info[:last_job_at], Time.now) + " ago" %></td>
@@ -36,13 +36,26 @@
 <table class="workers">
   <tr>
     <th>Worker</th>
-    <th>Queue</th>
+    <th>Queues</th>
     <th>Processed</th>
+    <th>Created</th>
     <th>Updated</th>
   </tr>
-  <tr>
-    <td colspan="4" class="no-data">No information...</td>
-  </tr>
+  <% if pace_info[:workers].present? %>
+    <% pace[:info][:workers].each do |id, info| %>
+      <tr>
+        <td><%= id %></td>
+        <td><%= info[:queues] %></td>
+        <td><%= info[:processed] && number_with_delimiter(info[:processed]) %></td>
+        <td><%= distance_of_time_in_words(info[:stared_at], Time.now) %> ago</td>
+        <td><%= distance_of_time_in_words(info[:updated_at], Time.now) %> ago</td>
+      </tr>
+    <% end %>
+  <% else %>
+    <tr>
+      <td colspan="5" class="no-data">No information...</td>
+    </tr>
+  <% end %>
 </table>
 
 <hr />

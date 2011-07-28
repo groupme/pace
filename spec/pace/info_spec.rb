@@ -41,7 +41,4 @@ describe Pace::Info do
       Pace::Info.queues["pace"][:processed].should == 2
     end
   end
-
-  describe ".save" do
-  end
 end
