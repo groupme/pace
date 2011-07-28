@@ -18,7 +18,7 @@ module Pace
         save_queues
         save_worker
         reset
-        log "saved info to redis (worker #{uuid})"
+        Pace.log "saved info to redis (worker #{uuid})"
       end
 
       def uuid
@@ -94,7 +94,7 @@ module Pace
       end
 
       def save_worker
-        key = k("workers:#{uuid}")
+        key = k("info:workers:#{uuid}")
         redis.hset(key, "created_at", Time.now.to_i) unless @initialized
         redis.hset(key, "updated_at", Time.now.to_i)
         redis.hset(key, "queues", @queues && @queues.keys.join(', '))
