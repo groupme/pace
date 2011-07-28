@@ -1,7 +1,7 @@
 <h1>Pace</h1>
 
 <p class="intro">
-  Details on jobs being processed by pace reactors. Updated <b><%= pace_info[:last_job_at] && distance_of_time_in_words(pace_info[:last_job_at]) || "never" %></b>.
+  Details on jobs being processed by pace reactors. Updated <b><%= pace_info[:last_job_at] && distance_of_time_in_words(pace_info[:updated_at], Time.now) || "never" %></b>.
 </p>
 
 <table class="queues">
@@ -13,7 +13,7 @@
   <tr class="failed">
     <td><b>All</b></td>
     <td><%= pace_info[:processed] && number_with_delimiter(pace_info[:processed]) %></td>
-    <td><%= pace_info[:last_job_at] && distance_of_time_in_words(pace_info[:last_job_at]) %></td>
+    <td><%= pace_info[:last_job_at] && distance_of_time_in_words(pace_info[:last_job_at], Time.now) %></td>
   </tr>
   <% if pace_info[:queues].present? %>
     <% pace_info[:queues].each do |name, info| %>

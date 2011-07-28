@@ -20,7 +20,7 @@ module Pace
           def pace_queues
             queues = {}
             Resque.redis.keys("pace:info:queues:*").each do |key|
-              queue = key.gsub("pace:info:queues:resque:queues:", "")
+              queue = key.gsub("pace:info:queues:resque:queue:", "")
               if info = Resque.redis.hgetall(key)
                 queues[queue] = {
                   :updated_at   => info["updated_at"] && Time.at(info["updated_at"].to_i),
