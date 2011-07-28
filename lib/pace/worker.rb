@@ -35,10 +35,7 @@ module Pace
 
         EventMachine::add_periodic_timer(PACE_HEARTBEAT) do
           Pace::LoadAverage.compute
-          log "load averages: #{$load.join(' ')}"
-
           Pace::Info.save
-          log "saved info to redis"
         end
 
         @redis = Pace.redis_connect

@@ -18,6 +18,7 @@ module Pace
         save_queues
         save_worker
         reset
+        log "saved info to redis (worker #{uuid})"
       end
 
       def uuid

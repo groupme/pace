@@ -17,6 +17,7 @@ module Pace
         $load[2] = average($load[2], EXP_5, per_second)
         $load[3] = average($load[3], EXP_15, per_second)
         $ticks = 0
+        log "load averages: #{$load.join(' ')}"
         $load
       end
 
