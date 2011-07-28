@@ -10,11 +10,12 @@ module Pace
           def pace_info
             info = Resque.redis.hgetall("pace:info")
             queues = pace_queues
-            last_job_at = queues.map { |q| q[:last_job_at] }.compact.sort.last
+            last_job_at = queues.map { |key, info| info[:last_job_at] }.compact.sort.last
             {
               :updated_at   => info["updated_at"] && Time.at(info["updated_at"].to_i),
               :last_job_at  => last_job_at,
               :processed    => info["processed"],
+              :classes      => pace_classes,
               :queues       => queues,
               :workers      => []
             }
@@ -33,6 +34,14 @@ module Pace
               end
             end
             queues
+          end
+
+          def pace_classes
+            classes = {}
+            Resque.redis.hgetall("pace:info:classes").each do |name, processed|
+              classes[name] = processed.to_i
+            end
+            Hash[classes.sort]
           end
 
           # reads a 'local' template file.
