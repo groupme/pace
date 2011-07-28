@@ -5,6 +5,7 @@ require "uri"
 require "logger"
 require "pace/load_average"
 require "pace/worker"
+require "pace/multi_queue_worker"
 
 module Pace
   class << self

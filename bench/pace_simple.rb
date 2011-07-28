@@ -20,7 +20,7 @@ Pace.start(:queue => Work.queue) do |job|
 
   if n == 49_999
     end_time = Time.now
-    EM.stop_event_loop
+    EM.stop
   end
 end
 

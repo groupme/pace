@@ -1,6 +1,6 @@
 module Pace
   class Worker
-    attr_reader :queues
+    attr_reader :queue
 
     class << self
       def on_error(&callback)
@@ -12,14 +12,14 @@ module Pace
       end
     end
 
-    def initialize(queues = nil)
-      queues ||= ENV["PACE_QUEUE"]
+    def initialize(queue = nil)
+      queue ||= ENV["PACE_QUEUE"]
 
-      if queues.nil? || queues.empty?
+      if queue.nil? || queue.empty?
         raise ArgumentError.new("Queue unspecified -- pass a queue name or set PACE_QUEUE")
       end
 
-      @queues = expand_queue_names(queues)
+      setup_queue(queue)
       @error_callbacks = []
       @paused = false
     end
@@ -62,7 +62,7 @@ module Pace
 
     def shutdown
       log "Shutting down"
-      EM.stop_event_loop
+      EM.stop
     end
 
     def on_error(&callback)
@@ -71,21 +71,20 @@ module Pace
 
     private
 
-    def fetch_next_job(index = 0)
+    def fetch_next_job
       return if @paused
-      queue = queues[index] || queues[index = 0]
-      @redis.lpop(queue) do |job|
-        EM.next_tick { fetch_next_job(index + 1) }
-        if job
-          begin
-            @block.call JSON.parse(job)
-            Pace::LoadAverage.tick
-          rescue Exception => e
-            log_failed_job("Job failed!", job, e)
-            fire_error_callbacks(job, e)
-          end
-        end
+
+      @redis.blpop(queue, 0) do |queue, job|
+        EM.next_tick { fetch_next_job }
+        perform(job) if job
       end
+    end
+
+    def perform(job)
+      @block.call JSON.parse(job)
+      Pace::LoadAverage.tick
+    rescue Exception => e
+      fire_error_callbacks(job, e)
     end
 
     def register_signal_handlers
@@ -98,9 +97,8 @@ module Pace
       Pace.logger.info(message)
     end
 
-    def expand_queue_names(queues)
-      queues = queues.split(",") if queues.is_a?(String)
-      queues.map { |queue| expand_queue_name(queue) }
+    def setup_queue(queue)
+      @queue = expand_queue_name(queue)
     end
 
     def expand_queue_name(queue)
@@ -117,6 +115,8 @@ module Pace
     end
 
     def fire_error_callbacks(job, error)
+      log_failed_job("Job failed!", job, error)
+
       begin
         (Pace::Worker.global_error_callbacks + @error_callbacks).each do |callback|
           callback.call(job, error)
