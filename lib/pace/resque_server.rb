@@ -1,6 +1,8 @@
 # Extend Resque::Server to add tabs.
 module Pace
   module ResqueServer
+    include ActionView::Helpers::DateHelper
+    include ActionView::Helpers::NumberHelper
 
     def self.included(base)
       base.class_eval {
