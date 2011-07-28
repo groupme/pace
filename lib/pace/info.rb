@@ -95,9 +95,12 @@ module Pace
 
       def save_worker
         key = k("info:workers:#{uuid}")
-        redis.hset(key, "created_at", Time.now.to_i) unless @initialized
+        unless @created
+          redis.hset(key, "created_at", Time.now.to_i)
+          @created = true
+        end
         redis.hset(key, "updated_at", Time.now.to_i)
-        redis.hset(key, "queues", @queues && @queues.keys.join(', '))
+        redis.hset(key, "queues", queues && queues.keys.join(', '))
         redis.hset(key, "processed", @total)
         redis.expire(key, WORKER_EXPIRE)
       end
