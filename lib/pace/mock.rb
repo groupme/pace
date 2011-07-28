@@ -26,16 +26,32 @@ module Pace
     def self.enable
       Pace.logger.info "Enabling Pace mock"
 
-      Pace::MultiQueueWorker.class_eval do
-        if respond_to?(:start_with_mock)
-          alias :start :start_with_mock
+      Pace::Worker.class_eval do
+        if private_instance_methods.include?(:fetch_next_job_with_mock)
+          alias :fetch_next_job :fetch_next_job_with_mock
         else
-          def start_with_mock(&block)
-            EM.run do
-              @block = block
-              @redis = Pace.redis_connect
-              empty_queues
+          private
+
+          def fetch_next_job_with_mock
+            @redis.lrange(queue, 0, -1) do |jobs|
+              jobs.each { |job| perform(job) }
+              @redis.del(queue) { EM.stop }
             end
+          end
+
+          alias :fetch_next_job_without_mock :fetch_next_job
+          alias :fetch_next_job :fetch_next_job_with_mock
+        end
+      end
+
+      Pace::MultiQueueWorker.class_eval do
+        if private_instance_methods(false).include?(:fetch_next_job_with_mock)
+          alias :fetch_next_job :fetch_next_job_with_mock
+        else
+          private
+
+          def fetch_next_job_with_mock
+            empty_queues
           end
 
           def empty_queues(index = 0)
@@ -53,29 +69,8 @@ module Pace
             end
           end
 
-          alias :start_without_mock :start
-          alias :start :start_with_mock
-        end
-      end
-
-      Pace::Worker.class_eval do
-        if respond_to?(:start_with_mock)
-          alias :start :start_with_mock
-        else
-          def start_with_mock(&block)
-            @block = block
-
-            EM.run do
-              @redis = Pace.redis_connect
-              @redis.lrange(queue, 0, -1) do |jobs|
-                jobs.each { |job| perform(job) }
-                @redis.del(queue) { EM.stop }
-              end
-            end
-          end
-
-          alias :start_without_mock :start
-          alias :start :start_with_mock
+          alias :fetch_next_job_without_mock :fetch_next_job
+          alias :fetch_next_job :fetch_next_job_with_mock
         end
       end
     end
@@ -84,14 +79,14 @@ module Pace
       Pace.logger.info "Disabling Pace mock"
 
       Pace::Worker.class_eval do
-        if method_defined?(:start_without_mock)
-          alias :start :start_without_mock
+        if private_instance_methods.include?(:fetch_next_job_without_mock)
+          alias :fetch_next_job :fetch_next_job_without_mock
         end
       end
 
       Pace::MultiQueueWorker.class_eval do
-        if method_defined?(:start_without_mock)
-          alias :start :start_without_mock
+        if private_instance_methods(false).include?(:fetch_next_job_without_mock)
+          alias :fetch_next_job :fetch_next_job_without_mock
         end
       end
     end
