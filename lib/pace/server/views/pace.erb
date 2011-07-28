@@ -13,14 +13,14 @@
   <tr class="failed">
     <td><b>all</b></td>
     <td><%= pace_info[:processed] && number_with_delimiter(pace_info[:processed]) %></td>
-    <td></td>
+    <td><%= pace_info[:last_job_at] && distance_of_time_in_words(pace_info[:last_job_at], Time.now) + " ago" %></td>
   </tr>
   <% if pace_info[:queues].present? %>
     <% pace_info[:queues].each do |name, info| %>
       <tr>
         <td><%= name %></td>
         <td><%= number_with_delimiter(info[:processed]) %></td>
-        <td><%= info[:last_job_at] && distance_of_time_in_words(info[:last_job_at], Time.now) %> ago</td>
+        <td><%= info[:last_job_at] && distance_of_time_in_words(info[:last_job_at], Time.now) + " ago" %></td>
       </tr>
     <% end %>
   <% end %>

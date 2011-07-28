@@ -9,11 +9,14 @@ module Pace
         helpers do
           def pace_info
             info = Resque.redis.hgetall("pace:info")
+            queues = pace_queues
+            last_job_at = queues.map { |q| q[:last_job_at] }.compact.sort.last
             {
-              :updated_at => info["updated_at"] && Time.at(info["updated_at"].to_i),
-              :processed  => info["processed"],
-              :queues     => pace_queues,
-              :workers    => []
+              :updated_at   => info["updated_at"] && Time.at(info["updated_at"].to_i),
+              :last_job_at  => last_job_at,
+              :processed    => info["processed"],
+              :queues       => queues,
+              :workers      => []
             }
           end
 
