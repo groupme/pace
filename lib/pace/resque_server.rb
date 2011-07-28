@@ -8,7 +8,7 @@ module Pace
           def pace_info
             info = Resque.redis.hgetall("pace:info")
             {
-              :updated_at => Time.at(info["updated_at"]),
+              :updated_at => info["updated_at"] && Time.at(info["updated_at"]),
               :processed  => info["processed"],
               :queues     => pace_queues,
               :workers    => []
@@ -21,8 +21,8 @@ module Pace
               queue = key.gsub("pace:info:queues:", "")
               info = Resque.redis.hgetall(key)
               queues[queue] = {
-                :updated_at   => Time.now(info["updated_at"]),
-                :last_job_at  => Time.now(info["last_job_at"]),
+                :updated_at   => info["updated_at"] && Time.now(info["updated_at"]),
+                :last_job_at  => info["last_job_at"] && Time.now(info["last_job_at"]),
                 :processed    => info["processed"]
               }
             end
