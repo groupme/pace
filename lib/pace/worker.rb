@@ -38,7 +38,7 @@ module Pace
         end
 
         @redis = Pace.redis_connect
-        fetch_next_job
+        EM.next_tick { fetch_next_job }
       end
     end
 

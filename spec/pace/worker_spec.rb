@@ -100,6 +100,52 @@ describe Pace::Worker do
 
       results.should == [2, 3]
     end
+
+    it "works if run inside an existing reactor" do
+      Resque.enqueue(Work)
+
+      results = []
+
+      EM.run do
+        worker = Pace::Worker.new(Work.queue)
+        worker.start do |job|
+          results << job
+          EM.stop
+        end
+      end
+
+      results.should == [{"class" => "Work", "args" => []}]
+    end
+
+    it "can process multiple queues with multiple instances of workers" do
+      5.times { |n| Resque.enqueue(Work, :n => n) }
+      5.times { |n| Resque.enqueue(Play, :n => n) }
+
+      results = {
+        "Work"  => 0,
+        "Play"  => 0,
+        "Total" => 0
+      }
+
+      EM.run do
+        worker_1 = Pace::Worker.new(Work.queue)
+        worker_2 = Pace::Worker.new(Play.queue)
+
+        block = Proc.new do |job|
+          results[job["class"]] += 1
+          results["Total"] += 1
+
+          EM.stop if results["Total"] == 10
+        end
+
+        worker_1.start(&block)
+        worker_2.start(&block)
+      end
+
+      results["Work"].should == 5
+      results["Play"].should == 5
+      results["Total"].should == 10
+    end
   end
 
   describe "#on_error" do
