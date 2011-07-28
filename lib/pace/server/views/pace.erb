@@ -4,43 +4,31 @@
   Details on jobs being processed by pace reactors.
 </p>
 
-<table>
+<table class="queues">
   <tr>
-    <th>Updated at</th>
-    <td><%= pace_info[:updated_at] || "No information" %></td>
+    <th>Name</th>
+    <th>Processed</th>
+    <th>Last Job</th>
+    <th>Updated</th>
   </tr>
   <tr>
-    <th>Jobs Processed</th>
-    <td><%= pace_info[:processed] || "No information" %></td>
-  </tr>
-</table>
-
-<hr />
-
-<h1>Queues</h1>
-<p class="info">
-  Queue statistics for pace workers
-</p>
-
-<table>
-  <tr>
-    <th>Queue</th>
-    <th>Last Updated</th>
-    <th>Last Job Run At</th>
-    <th>Jobs Processed</th>
+    <td><b>All</b></td>
+    <td><%= pace_info[:processed] %></td>
+    <td><%= pace_info[:last_job_at] %></td>
+    <td><%= pace_info[:updated_at] %></td>
   </tr>
   <% if pace_info[:queues].present? %>
     <% pace_info[:queues].each do |name, info| %>
       <tr>
         <td><%= name %></td>
-        <td><%= info[:updated_at] %></td>
-        <td><%= info[:last_job_at] %></td>
         <td><%= info[:processed] %></td>
+        <td><%= info[:last_job_at] %></td>
+        <td><%= info[:updated_at] %></td>
       </tr>
     <% end %>
   <% else %>
     <tr>
-      <td colspan="4"><em>No queue data available</em></td>
+      <td colspan="4" class="no-data">No information...</td>
     </tr>
   <% end %>
 </table>
@@ -49,7 +37,17 @@
 
 <h1>0 of 0 working</h1>
 <p class="info">
-  Pace workers that have run a job in the last 10 minutes
+  Workers active in the last 10 minutes
 </p>
 
-<h2>Coming soon!</h2>
+<table class="workers">
+  <tr>
+    <th>Worker</th>
+    <th>Queue</th>
+    <th>Processed</th>
+    <th>Updated</th>
+  </tr>
+  <tr>
+    <td colspan="4" class="no-data">No information...</td>
+  </tr>
+</table>
