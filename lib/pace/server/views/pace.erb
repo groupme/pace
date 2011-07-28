@@ -20,7 +20,7 @@
       <tr>
         <td><%= name %></td>
         <td><%= number_with_delimiter(info[:processed]) %></td>
-        <td><%= info[:last_job_at] && distance_of_time_in_words(info[:last_job_at]) %> ago</td>
+        <td><%= info[:last_job_at] && distance_of_time_in_words(info[:last_job_at], Time.now) %> ago</td>
       </tr>
     <% end %>
   <% end %>
