@@ -1,11 +1,4 @@
 # Stats on Pace
-# pace:info:updated_at
-# pace:info:processed
-# pace:info:classes
-# pace:info:classes:SomeJob
-# pace:info:queues:some_queue:updated_at
-# pace:info:queues:some_queue:last_job_at
-# pace:info:queues:some_queue:processed
 module Pace
   class Info
     class << self
@@ -26,17 +19,17 @@ module Pace
       end
 
       def save
-        redis.hset("pace:info", "updated_at", Time.now.to_i)
-        redis.hincrby("pace:info", "processed", processed)
+        redis.hset(k("info"), "updated_at", Time.now.to_i)
+        redis.hincrby(k("info"), "processed", processed)
 
         classes.each do |klass, count|
-          redis.hincrby("pace:info:classes", klass, count)
+          redis.hincrby(k("info:classes"), klass, count)
         end
 
         queues.each do |queue, info|
-          redis.hset("pace:info:queues:#{queue}", "updated_at", Time.now.to_i)
-          redis.hset("pace:info:queues:#{queue}", "last_job_at", info[:last_job_at])
-          redis.hincrby("pace:info:queues:#{queue}", "processed", info[:processed])
+          redis.hset(k("info:queues:#{queue}"), "updated_at", Time.now.to_i)
+          redis.hset(k("info:queues:#{queue}"), "last_job_at", info[:last_job_at])
+          redis.hincrby(k("info:queues:#{queue}"), "processed", info[:processed])
         end
 
         reset
@@ -63,6 +56,10 @@ module Pace
 
       def redis
         @redis ||= Pace.redis_connect
+      end
+
+      def k(key)
+        "resque:pace:#{key}"
       end
     end
   end
