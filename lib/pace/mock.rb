@@ -34,7 +34,14 @@ module Pace
 
           def fetch_next_job_with_mock
             @redis.lrange(queue, 0, -1) do |jobs|
-              jobs.each { |json| perform JSON.parse(json) }
+              jobs.each do |json|
+                begin
+                  perform JSON.parse(json)
+                rescue Exception => e
+                  log_exception("Job failed: #{json}", e)
+                  run_hook(:error, json, e)
+                end
+              end
               @redis.del(queue) { EM.stop }
             end
           end
