@@ -40,7 +40,6 @@ module Pace
 
         @redis = Pace.redis_connect
         EM.next_tick { fetch_next_job }
-
         run_hook(:start)
       end
     end
@@ -82,15 +81,23 @@ module Pace
     def fetch_next_job
       return if @paused
 
-      @redis.blpop(queue, 0) do |queue, json|
-        EM.next_tick { fetch_next_job }
-        return unless json
+      # Ugh, a guard against dropped Redis connections. Since em-redis doesn't
+      # set a failed state or expose errbacks on its deferrable when #unbind is
+      # called, let's resort to setting a timer that fires if blpop's callback
+      # is never invoked.
+      timer = EM::Timer.new(30) { fetch_next_job }
 
-        begin
-          perform JSON.parse(json)
-        rescue Exception => e
-          log_exception("Job failed: #{json}", e)
-          run_hook(:error, json, e)
+      @redis.blpop(queue, 15) do |queue, json|
+        timer.cancel
+        EM.next_tick { fetch_next_job }
+
+        if json
+          begin
+            perform JSON.parse(json)
+          rescue Exception => e
+            log_exception("Job failed: #{json}", e)
+            run_hook(:error, json, e)
+          end
         end
       end
     end
