@@ -19,7 +19,7 @@ module Pace
         raise ArgumentError.new("Queue unspecified -- pass a queue name or set PACE_QUEUE")
       end
 
-      setup_queue(queue)
+      @queue = expand_queue_name(queue)
       @error_callbacks = []
       @paused = false
     end
@@ -98,10 +98,6 @@ module Pace
       trap('TERM') { shutdown }
       trap('QUIT') { shutdown }
       trap('INT')  { shutdown }
-    end
-
-    def setup_queue(queue)
-      @queue = expand_queue_name(queue)
     end
 
     def expand_queue_name(queue)

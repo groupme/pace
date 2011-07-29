@@ -26,29 +26,6 @@ describe Pace::Mock do
       more_results.should be_empty
     end
 
-    it "works with multiple queues" do
-      Pace::Mock.enable
-      Resque.enqueue(Work, :n => 1)
-      Resque.enqueue(Work, :n => 2)
-      Resque.enqueue(Play, :n => "a")
-      Resque.enqueue(Play, :n => "b")
-
-      results = []
-      worker = Pace::MultiQueueWorker.new([Work.queue, Play.queue])
-      worker.start { |job| results << job }
-      results.should == [
-        {"class" => "Work", "args" => [{"n" => 1}]},
-        {"class" => "Work", "args" => [{"n" => 2}]},
-        {"class" => "Play", "args" => [{"n" => "a"}]},
-        {"class" => "Play", "args" => [{"n" => "b"}]},
-      ]
-
-      # Clears out the queues
-      more_results = []
-      worker.start { |job| more_results << job }
-      more_results.should be_empty
-    end
-
     it "works after disabling" do
       Pace::Mock.enable
       Pace::Mock.disable
