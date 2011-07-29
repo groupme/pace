@@ -3,12 +3,12 @@ module Pace
     attr_reader :queue
 
     class << self
-      def on_error(&callback)
-        global_error_callbacks << callback
+      def add_hook(event, &block)
+        global_hooks[event] << block
       end
 
-      def global_error_callbacks
-        @global_error_callbacks ||= []
+      def global_hooks
+        @global_hooks ||= Hash.new { |h,k| h[k] = [] }
       end
     end
 
@@ -19,8 +19,8 @@ module Pace
         raise ArgumentError.new("Queue unspecified -- pass a queue name or set PACE_QUEUE")
       end
 
-      @queue = expand_queue_name(queue)
-      @error_callbacks = []
+      @queue  = expand_queue_name(queue)
+      @hooks  = Hash.new { |h, k| h[k] = [] }
       @paused = false
     end
 
@@ -40,6 +40,8 @@ module Pace
 
         @redis = Pace.redis_connect
         EM.next_tick { fetch_next_job }
+
+        run_hook(:start)
       end
     end
 
@@ -63,15 +65,16 @@ module Pace
 
     def shutdown
       log "Shutting down"
+      run_hook(:shutdown)
       EM.stop
-    end
-
-    def on_error(&callback)
-      @error_callbacks << callback
     end
 
     def log(message, start_time = nil)
       Pace.log(message, start_time)
+    end
+
+    def add_hook(event, &block)
+      @hooks[event] << block
     end
 
     private
@@ -91,7 +94,8 @@ module Pace
       Pace::Info.log(queue, job)
       Pace::LoadAverage.tick
     rescue Exception => e
-      fire_error_callbacks(json, e)
+      log_exception("Job failed => #{json}", e)
+      run_hook(:error, json, e)
     end
 
     def register_signal_handlers
@@ -107,21 +111,21 @@ module Pace
       parts.join(":")
     end
 
-    def log_failed_job(message, json, exception)
-      message = "#{message}\n#{json}\n#{exception.message}\n"
-      message << exception.backtrace.join("\n")
-      Pace.logger.error(message)
+    def log_exception(message, exception)
+      entry = "#{message}\n"
+      entry << "#{exception.class}: #{exception.message}\n"
+      entry << exception.backtrace.join("\n")
+      Pace.logger.error(entry)
     end
 
-    def fire_error_callbacks(json, error)
-      log_failed_job("Job failed!", json, error)
-
+    def run_hook(event, *args)
       begin
-        (Pace::Worker.global_error_callbacks + @error_callbacks).each do |callback|
-          callback.call(json, error)
+        event_hooks = Pace::Worker.global_hooks[event] + @hooks[event]
+        event_hooks.each do |hook|
+          hook.call(*args)
         end
       rescue Exception => e
-        log_failed_job("Your error handler just failed!", json, e)
+        log_exception("Hook failed for #{event}: #{args.inspect}", e)
       end
     end
   end

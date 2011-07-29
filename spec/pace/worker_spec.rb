@@ -148,55 +148,77 @@ describe Pace::Worker do
     end
   end
 
-  describe "#on_error" do
-    it "creates callbacks to run if there's an error while processing a job" do
+  describe "event hooks" do
+    it "can be defined for start, error, and shutdown" do
       Resque.enqueue(Work, :n => 1)
       Resque.enqueue(Work, :n => 2)
-      exception = RuntimeError.new("FAIL")
+
+      called_hooks = []
 
       worker = Pace::Worker.new(Work.queue)
-      errors = []
-
-      # Error handler 1
-      worker.on_error do |job, error|
-        errors << error
+      worker.add_hook(:start) do
+        called_hooks.should be_empty
+        called_hooks << :start
       end
 
-      # Error handler 2
-      worker.on_error do |job, error|
-        errors << error
+      worker.add_hook(:error) do |json, error|
+        called_hooks.should == [:start]
+        called_hooks << :error
+        error.message.should == "FAIL"
+      end
+
+      worker.add_hook(:shutdown) do
+        called_hooks.should == [:start, :error]
+        called_hooks << :shutdown
       end
 
       worker.start do |job|
         n = job["args"].first["n"]
-        raise exception    if n == 1
-        EM.stop if n == 2
+
+        if n == 1
+          raise "FAIL"
+        else
+          worker.shutdown
+        end
       end
 
-      errors.should == [exception, exception]
+      called_hooks.should == [:start, :error, :shutdown]
     end
 
-    it "also fires global callbacks defined on Pace::Worker" do
+    it "can be defined globally on Pace::Worker" do
       Resque.enqueue(Work, :n => 1)
       Resque.enqueue(Work, :n => 2)
-      exception = RuntimeError.new("FAIL")
 
-      worker = Pace::Worker.new(Work.queue)
-      errors = []
+      called_hooks = []
 
-      # Global handler
-      Pace::Worker.on_error { |job, error| errors << error }
-
-      # Local handler
-      worker.on_error { |job, error| errors << error }
-
-      worker.start do |job|
-        n = job["args"].first["n"]
-        raise exception    if n == 1
-        EM.stop if n == 2
+      Pace::Worker.add_hook(:start) do
+        called_hooks.should be_empty
+        called_hooks << :start
       end
 
-      errors.should == [exception, exception]
+      Pace::Worker.add_hook(:error) do |json, error|
+        called_hooks.should == [:start]
+        called_hooks << :error
+        error.message.should == "FAIL"
+      end
+
+      Pace::Worker.add_hook(:shutdown) do
+        called_hooks.should == [:start, :error]
+        called_hooks << :shutdown
+      end
+
+      worker = Pace::Worker.new(Work.queue)
+      worker.start do |job|
+        n = job["args"].first["n"]
+
+        if n == 1
+          raise "FAIL"
+        else
+          worker.shutdown
+        end
+      end
+
+      called_hooks.should == [:start, :error, :shutdown]
     end
   end
 
