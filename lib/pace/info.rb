@@ -1,7 +1,7 @@
 # Stats on Pace
 module Pace
   class Info
-    WORKER_EXPIRE = 600 # 10 minutes
+    WORKER_EXPIRE = 60
 
     class << self
       def log(queue, job)
@@ -100,7 +100,7 @@ module Pace
           @created = true
         end
         redis.hset(key, "updated_at", Time.now.to_i)
-        redis.hset(key, "queues", queues && queues.keys.join(', '))
+        redis.hset(key, "command", $0)
         redis.hset(key, "processed", @total)
         redis.expire(key, WORKER_EXPIRE)
       end

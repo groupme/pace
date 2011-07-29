@@ -52,7 +52,7 @@ module Pace
                 workers[id] = {
                   :created_at   => info["created_at"] && Time.at(info["created_at"].to_i),
                   :updated_at   => info["updated_at"] && Time.at(info["updated_at"].to_i),
-                  :queues       => info["queues"],
+                  :command      => info["command"],
                   :processed    => info["processed"].to_i
                 }
               end

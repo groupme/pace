@@ -30,13 +30,13 @@
 
 <h1>Workers</h1>
 <p class="sub">
-  Active within the last 10 minutes.
+  Active within the last minute.
 </p>
 
 <table class="workers">
   <tr>
     <th>Worker</th>
-    <th>Queues</th>
+    <th>Command</th>
     <th>Processed</th>
     <th>Created</th>
     <th>Updated</th>
@@ -45,7 +45,7 @@
     <% pace_info[:workers].each do |id, info| %>
       <tr>
         <td><%= id %></td>
-        <td><%= info[:queues] %></td>
+        <td><%= info[:command] %></td>
         <td><%= info[:processed] && number_with_delimiter(info[:processed]) %></td>
         <td><%= distance_of_time_in_words(info[:created_at], Time.now) %> ago</td>
         <td><%= info[:updated_at] && distance_of_time_in_words(info[:updated_at], Time.now) + " ago" %></td>
