@@ -34,6 +34,11 @@ namespace :bench do
     require "bench/pace_simple"
   end
 
+  desc "Bench Pace with New Relic monitoring"
+  task :pace_newrelic do
+    require "bench/pace_newrelic"
+  end
+
   desc "Bench HTTP calls through Pace"
   task :pace_http do
     ENV["PACE_QUEUE"] = "normal"

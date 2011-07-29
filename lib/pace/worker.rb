@@ -84,18 +84,21 @@ module Pace
 
       @redis.blpop(queue, 0) do |queue, json|
         EM.next_tick { fetch_next_job }
-        perform(json) if json
+        return unless json
+
+        begin
+          perform JSON.parse(json)
+        rescue Exception => e
+          log_exception("Job failed: #{json}", e)
+          run_hook(:error, json, e)
+        end
       end
     end
 
-    def perform(json)
-      job = JSON.parse(json)
+    def perform(job)
       @block.call(job)
       Pace::Info.log(queue, job)
       Pace::LoadAverage.tick
-    rescue Exception => e
-      log_exception("Job failed => #{json}", e)
-      run_hook(:error, json, e)
     end
 
     def register_signal_handlers

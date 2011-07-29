@@ -39,7 +39,11 @@ module Pace
     end
 
     def logger
-      @logger ||= Logger.new(STDOUT)
+      @logger ||= begin
+        logger = Logger.new(STDOUT)
+        logger.level = Logger::INFO
+        logger
+      end
     end
 
     def logger=(new_logger)

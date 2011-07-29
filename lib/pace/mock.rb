@@ -34,7 +34,7 @@ module Pace
 
           def fetch_next_job_with_mock
             @redis.lrange(queue, 0, -1) do |jobs|
-              jobs.each { |job| perform(job) }
+              jobs.each { |json| perform JSON.parse(json) }
               @redis.del(queue) { EM.stop }
             end
           end
