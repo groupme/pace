@@ -1,12 +1,22 @@
 # Extend Resque::Server to add tabs.
 module Pace
   module Server
-    include ActionView::Helpers::DateHelper
-    include ActionView::Helpers::NumberHelper
-
     def self.included(base)
       base.class_eval {
         helpers do
+          if defined?(ActionView)
+            include ActionView::Helpers::DateHelper
+            include ActionView::Helpers::NumberHelper
+          else
+            def distance_of_time_in_words(time, other)
+              time.to_s
+            end
+
+            def number_with_delimiter(number)
+              number
+            end
+          end
+
           def pace_info
             info = Resque.redis.hgetall("pace:info")
             queues = pace_queues
@@ -24,7 +34,7 @@ module Pace
           def pace_queues
             queues = {}
             Resque.redis.keys("pace:info:queues:*").each do |key|
-              queue = key.gsub("pace:info:queues:resque:queue:", "")
+              queue = key.gsub("pace:info:queues:", "")
               if info = Resque.redis.hgetall(key)
                 queues[queue] = {
                   :updated_at   => info["updated_at"] && Time.at(info["updated_at"].to_i),

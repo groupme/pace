@@ -10,7 +10,7 @@
     <th>Processed</th>
     <th>Last Job</th>
   </tr>
-  <% if pace_info[:queues].present? %>
+  <% if !pace_info[:queues].empty? %>
     <% pace_info[:queues].each do |name, info| %>
       <tr>
         <td><%= name %></td>
@@ -25,6 +25,16 @@
     <td><%= pace_info[:last_job_at] && distance_of_time_in_words(pace_info[:last_job_at], Time.now) + " ago" %></td>
   </tr>
 </table>
+
+<br />
+
+<h2 style="color: #777;font-weight: bold;border-bottom: 1px solid #eee">12 hours</h2>
+<div id='jobs_per_minute' style="height: 200px"></div>
+
+<br />
+
+<h2 style="color: #777;font-weight: bold;border-bottom: 1px solid #eee">7 Days</h2>
+<div id='jobs_per_hour' style="height: 200px"></div>
 
 <hr />
 
@@ -41,7 +51,7 @@
     <th>Created</th>
     <th>Updated</th>
   </tr>
-  <% if pace_info[:workers].present? %>
+  <% if !pace_info[:workers].empty? %>
     <% pace_info[:workers].each do |id, info| %>
       <tr>
         <td><%= id %></td>
@@ -71,7 +81,7 @@
     <th>Processed</th>
   </tr>
 
-  <% if pace_info[:classes].present? %>
+  <% if !pace_info[:classes].empty? %>
     <% pace_info[:classes].each do |name, processed| %>
       <tr>
         <td><%= name %></td>
@@ -84,3 +94,34 @@
     </tr>
   <% end %>
 </table>
+
+<hr />
+
+<% queues = pace_info[:queues].keys %>
+<% queues = ["apn", "wpn", "c2dm", "twilio", "bandwidth"] %>
+<script type='text/javascript' src='https://www.google.com/jsapi'></script>
+<script type='text/javascript'>
+  google.load('visualization', '1', {packages:['imagelinechart']});
+  google.setOnLoadCallback(drawMinuteChart);
+  google.setOnLoadCallback(drawHourChart);
+
+  // 12 hours, by minute
+  function drawMinuteChart() {
+    var data = new google.visualization.DataTable({
+      cols: [<%= Pace::Stats.google_chart_cols(queues) %>],
+      rows: [<%= Pace::Stats.google_chart_rows(queues) %>]
+    });
+    var chart = new google.visualization.ImageLineChart(document.getElementById('jobs_per_minute'));
+    chart.draw(data, {width: 800, height: 200, min: 0});
+  }
+
+  // 7 days, by hour
+  function drawHourChart() {
+    var data = new google.visualization.DataTable({
+      cols: [<%= Pace::Stats.google_chart_cols(queues) %>],
+      rows: [<%= Pace::Stats.google_chart_rows(queues, :hour) %>]
+    });
+    var chart = new google.visualization.ImageLineChart(document.getElementById('jobs_per_hour'));
+    chart.draw(data, {width: 800, height: 200, min: 0});
+  }
+</script>
