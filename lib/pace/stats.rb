@@ -4,7 +4,7 @@ module Pace
 
     class << self
       def name
-        "resque:pace:stats"
+        "pace:stats"
       end
 
       def google_chart_cols(queues)
