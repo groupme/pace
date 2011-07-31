@@ -89,8 +89,8 @@ module Pace
 
       def save_queues
         queues.each do |queue, info|
-          now = Time.now.to_i
-          redis.hset(k("info:queues:#{queue}"), "updated_at", now)
+          now = Time.now
+          redis.hset(k("info:queues:#{queue}"), "updated_at", now.to_i)
           redis.hset(k("info:queues:#{queue}"), "last_job_at", info[:last_job_at])
           redis.hincrby(k("info:queues:#{queue}"), "processed", info[:processed])
 
