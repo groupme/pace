@@ -63,6 +63,8 @@ module Pace
     end
 
     def shutdown
+      log "Saving statistics..."
+      Pace::Info.save
       log "Shutting down"
       run_hook(:shutdown)
       EM.stop
