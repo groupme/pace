@@ -100,12 +100,12 @@ module Pace
       end
 
       # conforms to redistat format:
-      # resque:pace/jobs:2011          => {"apn" => 1}
-      # resque:pace/jobs:201107        => {"apn" => 1}
-      # resque:pace/jobs:20110730      => {"apn" => 1}
-      # resque:pace/jobs:2011073018    => {"apn" => 1}
-      # resque:pace/jobs:201107301801  => {"apn" => 1}
-      # resque:pace:stats.label_index:      => ""
+      # pace.stats/jobs:2011          => {"queue" => 1}
+      # pace.stats/jobs:201107        => {"queue" => 1}
+      # pace.stats/jobs:20110730      => {"queue" => 1}
+      # pace.stats/jobs:2011073018    => {"queue" => 1}
+      # pace.stats/jobs:201107301801  => {"queue" => 1}
+      # pace:stats.label_index:       => ""
       def save_stats(queue, processed, time = Time.now)
         time = time.utc
         prefix = "pace:stats/jobs:"
