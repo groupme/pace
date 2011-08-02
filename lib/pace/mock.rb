@@ -27,7 +27,7 @@ module Pace
       Pace.logger.info "Enabling Pace mock"
 
       Pace::Worker.class_eval do
-        if private_instance_methods.include?(:fetch_next_job_with_mock)
+        if private_instance_methods.include?("fetch_next_job_with_mock") || private_instance_methods.include?(:fetch_next_job_with_mock)
           alias :fetch_next_job :fetch_next_job_with_mock
         else
           private
@@ -56,7 +56,7 @@ module Pace
       Pace.logger.info "Disabling Pace mock"
 
       Pace::Worker.class_eval do
-        if private_instance_methods.include?(:fetch_next_job_without_mock)
+        if private_instance_methods.include?("fetch_next_job_without_mock") || private_instance_methods.include?(:fetch_next_job_without_mock)
           alias :fetch_next_job :fetch_next_job_without_mock
         end
       end

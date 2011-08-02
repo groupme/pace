@@ -30,7 +30,7 @@ module Pace
 
     def run
       if @hook.arity > @args.size
-        @hook.call(*@args, self)
+        @hook.call(*[@args, self].flatten.compact)
       else
         @hook.call(*@args)
         finished!
