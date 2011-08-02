@@ -10,6 +10,10 @@ module Pace
       def global_hooks
         @global_hooks ||= Hash.new { |h,k| h[k] = [] }
       end
+
+      def clear_hooks
+        @global_hooks = nil
+      end
     end
 
     def initialize(queue = nil)
@@ -63,11 +67,11 @@ module Pace
     end
 
     def shutdown
-      log "Saving statistics..."
-      Pace::Info.save
       log "Shutting down"
-      run_hook(:shutdown)
-      EM.stop
+      run_hook(:shutdown) { EM.stop }
+
+      # Parachute...
+      EM.add_timer(10) { raise("Dying by exception") }
     end
 
     def log(message, start_time = nil)
@@ -130,14 +134,13 @@ module Pace
       Pace.logger.error(entry)
     end
 
-    def run_hook(event, *args)
+    def run_hook(type, *args, &block)
       begin
-        event_hooks = Pace::Worker.global_hooks[event] + @hooks[event]
-        event_hooks.each do |hook|
-          hook.call(*args)
-        end
+        hooks = Pace::Worker.global_hooks[type] + @hooks[type]
+        event = Pace::Event.new(hooks, *args, &block)
+        event.run
       rescue Exception => e
-        log_exception("Hook failed for #{event}: #{args.inspect}", e)
+        log_exception("Hook failed for #{type}: #{args.inspect}", e)
       end
     end
   end

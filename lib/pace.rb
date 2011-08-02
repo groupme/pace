@@ -7,10 +7,11 @@ require "uri"
 require "uuid"
 require "logger"
 require "redistat"
+require "pace/event"
+require "pace/worker"
 require "pace/info"
 require "pace/load_average"
 require "pace/stats"
-require "pace/worker"
 
 $uuid = UUID.new
 

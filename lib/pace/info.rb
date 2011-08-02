@@ -1,8 +1,8 @@
 # Stats on Pace
 module Pace
   class Info
-    WORKER_TTL  = 60
-    MINUTE_TTL  = 25920 # 72 hours in seconds
+    WORKER_TTL = 60
+    MINUTE_TTL = 259200 # 72 hours in seconds
 
     class << self
       def log(queue, job)
@@ -13,12 +13,13 @@ module Pace
         update_processed
       end
 
-      def save
+      def save(&block)
         save_info
         save_classes
         save_queues
         save_worker
         reset
+        redis.callback(&block) if block_given?
         Pace.log "saved info to redis (worker #{uuid})"
       end
 
@@ -43,6 +44,12 @@ module Pace
         @processed = 0
         @queues = {}
         @classes = {}
+      end
+
+      def add_shutdown_hook
+        Pace::Worker.add_hook(:shutdown) { |hook|
+          Pace::Info.save { hook.finished! }
+        }
       end
 
       private
@@ -148,3 +155,5 @@ module Pace
     end
   end
 end
+
+Pace::Info.add_shutdown_hook
