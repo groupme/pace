@@ -324,5 +324,28 @@ describe Pace::Worker do
       (results[1] - results[0]).should > 0.1
       (results[2] - results[0]).should > 0.1
     end
+
+    it "pauses for specified time period" do
+      Resque.enqueue(Work, :n => 1)
+      Resque.enqueue(Work, :n => 2)
+      Resque.enqueue(Work, :n => 3)
+
+      results = []
+
+      worker = Pace::Worker.new(Work.queue)
+      worker.start do |job|
+        n = job["args"].first["n"]
+        if n == 1
+          worker.pause(0.1) # sleep for 100ms
+        elsif n >= 3
+          worker.shutdown
+        end
+        results << Time.now.to_f
+      end
+
+      # Check if we actually paused
+      (results[1] - results[0]).should > 0.1
+      (results[2] - results[0]).should > 0.1
+    end
   end
 end

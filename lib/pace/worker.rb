@@ -57,7 +57,8 @@ module Pace
       @enqueue_redis.rpush(queue, job, &block)
     end
 
-    def pause
+    def pause(duration = nil)
+      EM.add_timer(duration) { resume } if duration
       @paused = true
     end
 
