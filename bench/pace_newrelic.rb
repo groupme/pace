@@ -22,6 +22,9 @@ Pace.logger.info "Finished adding 50,000 jobs"
 
 start_time, end_time = Time.now, nil
 
+# More than enough...
+EM.set_max_timers(75_000)
+
 worker = Pace::Worker.new(Work.queue)
 worker.start do |job|
   n = job["args"][0]["n"]

@@ -24,5 +24,6 @@ Gem::Specification.new do |s|
   s.add_dependency "redistat"
 
   s.add_development_dependency "resque", "~> 1.17.1"
-  s.add_development_dependency "rspec",  "~> 2.6.0"
+  s.add_development_dependency "rspec", "~> 2.6.0"
+  s.add_development_dependency "hoptoad_notifier", "~> 2.4.11"
 end
