@@ -34,6 +34,9 @@ module Pace
       log "Starting up"
       register_signal_handlers
 
+      # Default is 1000
+      EM.set_max_timers(10_000) unless EM.reactor_running?
+
       EM.run do
         EM.epoll # Change to kqueue for BSD kernels
 
