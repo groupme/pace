@@ -27,9 +27,6 @@ module Pace
             :interval => :min,
             :depth    => :min
           )
-          stats.map do |r|
-            results << [r.date.strftime("%k:00")] + queues.map {|q| r[q.to_sym].to_i}
-          end
         elsif interval == :hour
           points = 168
           label_index = 24
@@ -40,18 +37,20 @@ module Pace
             :interval => :hour,
             :depth    => :hour
           )
-          stats.map do |r|
-            results << [r.date.strftime("%a %m/%e")] + queues.map {|q| r[q.to_sym].to_i}
-          end
         end
 
+        stats.map do |r|
+          results << [r.date] + queues.map {|q| r[q.to_sym].to_i}
+        end
+
+        format = (interval == :min) ? "%k:%M" : "%a %m/%d"
         rows = []
         0.upto(points - 1).each do |row_index|
           cols = []
           counts = results[row_index]
-          date = counts.shift # discard date
-          if row_index == 0 || (row_index + 1) % label_index == 0
-            cols << "{v:'#{date}'}"
+          date = counts.shift.utc # discard date
+          if show_axis_label?(interval, date)
+            cols << "{v:'#{date.strftime(format)}'}"
           else
             cols << "{v:''}"
           end
@@ -61,6 +60,14 @@ module Pace
           rows << "{c:[#{cols.join(',')}]}"
         end
         rows.join(',')
+      end
+
+      def show_axis_label?(interval, date)
+        if interval == :min
+          date.min == 0 && date.hour % 2 == 0
+        else
+          date.hour == 0 && date.min == 0
+        end
       end
     end
   end
