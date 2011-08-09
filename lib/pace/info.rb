@@ -20,7 +20,6 @@ module Pace
         save_worker
         reset
         redis.callback(&block) if block_given?
-        Pace.log "saved info to redis (worker #{uuid})"
       end
 
       def uuid
