@@ -32,7 +32,7 @@ module Pace
     end
 
     def start(&block)
-      install_refresh_timer
+      install_refresh_timer if EM.reactor_running?
       super
     end
 
