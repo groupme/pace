@@ -97,5 +97,13 @@ describe Pace::Info do
         "pace" => {:last_job_at => nil, :processed => 0}
       })
     end
+
+    it "gets called when a worker is initialized (via a hook)" do
+      Pace::Info.class_eval { @queues = nil }
+      Pace::Worker.new("boosh")
+      Pace::Info.queues.should include({
+        "boosh" => {:last_job_at => nil, :processed => 0}
+      })
+    end
   end
 end

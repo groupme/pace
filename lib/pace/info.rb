@@ -31,7 +31,7 @@ module Pace
       end
 
       def queues
-        @queues || {}
+        @queues ||= {}
       end
 
       def classes
@@ -43,15 +43,14 @@ module Pace
         @processed   = 0
         @classes     = {}
 
-        @queues ||= {}
-        @queues.each_key do |key|
-          @queues[key][:processed]   = 0
-          @queues[key][:last_job_at] = nil
+        queues.each_key do |key|
+          queues[key][:processed]   = 0
+          queues[key][:last_job_at] = nil
         end
       end
 
       def add_queue(queue)
-        @queues[basename(queue)] ||= {:last_job_at => nil, :processed => 0}
+        queues[basename(queue)] ||= {:last_job_at => nil, :processed => 0}
       end
 
       def add_hooks
@@ -90,11 +89,10 @@ module Pace
 
       def update_queue(queue)
         queue = basename(queue) # remove resque:queue
-        @queues[queue] ||= {}
-        @queues[queue][:processed] ||= 0
-        @queues[queue] = {
+        add_queue(queue) unless queues.has_key?(queue)
+        queues[queue] = {
           :last_job_at  => Time.now.to_i,
-          :processed    => @queues[queue][:processed] + 1
+          :processed    => queues[queue][:processed] + 1
         }
       end
 
