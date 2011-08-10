@@ -26,28 +26,30 @@ module Pace
     def self.enable
       Pace.logger.info "Enabling Pace mock"
 
-      Pace::Worker.class_eval do
-        if private_instance_methods.include?("fetch_next_job_with_mock") || private_instance_methods.include?(:fetch_next_job_with_mock)
-          alias :fetch_next_job :fetch_next_job_with_mock
-        else
-          private
+      [Pace::Worker, Pace::ThrottledWorker].each do |klass|
+        klass.class_eval do
+          if private_instance_methods.include?("fetch_next_job_with_mock") || private_instance_methods.include?(:fetch_next_job_with_mock)
+            alias :fetch_next_job :fetch_next_job_with_mock
+          else
+            private
 
-          def fetch_next_job_with_mock
-            @redis.lrange(queue, 0, -1) do |jobs|
-              jobs.each do |json|
-                begin
-                  perform JSON.parse(json)
-                rescue Exception => e
-                  log_exception("Job failed: #{json}", e)
-                  run_hook(:error, json, e)
+            def fetch_next_job_with_mock
+              @redis.lrange(queue, 0, -1) do |jobs|
+                jobs.each do |json|
+                  begin
+                    perform JSON.parse(json)
+                  rescue Exception => e
+                    log_exception("Job failed: #{json}", e)
+                    run_hook(:error, json, e)
+                  end
                 end
+                @redis.del(queue) { EM.stop }
               end
-              @redis.del(queue) { EM.stop }
             end
-          end
 
-          alias :fetch_next_job_without_mock :fetch_next_job
-          alias :fetch_next_job :fetch_next_job_with_mock
+            alias :fetch_next_job_without_mock :fetch_next_job
+            alias :fetch_next_job :fetch_next_job_with_mock
+          end
         end
       end
     end
@@ -55,9 +57,11 @@ module Pace
     def self.disable
       Pace.logger.info "Disabling Pace mock"
 
-      Pace::Worker.class_eval do
-        if private_instance_methods.include?("fetch_next_job_without_mock") || private_instance_methods.include?(:fetch_next_job_without_mock)
-          alias :fetch_next_job :fetch_next_job_without_mock
+      [Pace::Worker, Pace::ThrottledWorker].each do |klass|
+        klass.class_eval do
+          if private_instance_methods.include?("fetch_next_job_without_mock") || private_instance_methods.include?(:fetch_next_job_without_mock)
+            alias :fetch_next_job :fetch_next_job_without_mock
+          end
         end
       end
     end
