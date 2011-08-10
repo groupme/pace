@@ -33,6 +33,11 @@ namespace :bench do
   task :pace_simple do
     require "bench/pace_simple"
   end
+  
+  desc "Bench throttled worker"
+  task :pace_throttled do
+    require "bench/pace_throttled"
+  end
 
   desc "Bench Pace with New Relic monitoring"
   task :pace_newrelic do
