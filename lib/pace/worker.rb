@@ -63,11 +63,14 @@ module Pace
     end
 
     def pause(duration = nil)
+      return false if @paused
+      log("paused at #{Time.now.to_f}")
       EM.add_timer(duration) { resume } if duration
       @paused = true
     end
 
     def resume
+      log("resumed at #{Time.now.to_f}")
       @paused = false
       EM.next_tick { fetch_next_job }
     end

@@ -353,5 +353,15 @@ describe Pace::Worker do
       (results[1] - results[0]).should > 0.1
       (results[2] - results[0]).should > 0.1
     end
+
+    it "does not pause if already paused" do
+      Resque.enqueue(Work, :n => 1)
+      worker = Pace::Worker.new(Work.queue)
+      worker.start do |job|
+        worker.pause(0.1)
+        worker.pause(0.1).should be_false
+        worker.shutdown
+      end
+    end
   end
 end
