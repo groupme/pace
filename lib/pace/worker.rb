@@ -26,6 +26,8 @@ module Pace
       @queue  = expand_queue_name(queue)
       @hooks  = Hash.new { |h, k| h[k] = [] }
       @paused = false
+
+      run_hook(:initialize, @queue)
     end
 
     def start(&block)
@@ -141,8 +143,11 @@ module Pace
     def run_hook(type, *args, &block)
       begin
         hooks = Pace::Worker.global_hooks[type] + @hooks[type]
-        event = Pace::Event.new(hooks, *args, &block)
-        event.run
+
+        unless hooks.empty?
+          event = Pace::Event.new(hooks, *args, &block)
+          event.run
+        end
       rescue Exception => e
         log_exception("Hook failed for #{type}: #{args.inspect}", e)
       end

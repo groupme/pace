@@ -88,4 +88,14 @@ describe Pace::Info do
       Resque.redis.hget("pace:info:queues:pace", "updated_at").should == (now + 10).to_i.to_s
     end
   end
+
+  describe ".add_queue" do
+    it "adds a queue entry with default values" do
+      Pace::Info.class_eval { @queues = {} }
+      Pace::Info.add_queue("resque:queue:pace")
+      Pace::Info.queues.should include({
+        "pace" => {:last_job_at => nil, :processed => 0}
+      })
+    end
+  end
 end

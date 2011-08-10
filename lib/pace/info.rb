@@ -50,7 +50,18 @@ module Pace
         end
       end
 
-      def add_shutdown_hook
+      def add_queue(queue)
+        @queues[basename(queue)] ||= {:last_job_at => nil, :processed => 0}
+      end
+
+      def add_hooks
+        # Add a queue entry immediately upon initialization in order start
+        # updating the queue's timestamp in Redis. Otherwise, we'd have to
+        # wait for a job to be processed.
+        Pace::Worker.add_hook(:initialize) { |queue|
+          Pace::Info.add_queue(queue)
+        }
+
         Pace::Worker.add_hook(:shutdown) { |hook|
           Pace::Info.save { hook.finished! }
         }
@@ -161,4 +172,4 @@ module Pace
   end
 end
 
-Pace::Info.add_shutdown_hook
+Pace::Info.add_hooks
