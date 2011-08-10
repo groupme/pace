@@ -223,9 +223,15 @@ describe Pace::Worker do
   end
 
   describe "#shutdown" do
-    it "stops the event loop on the next attempt to fetch a job" do
+    # With Pace::Info mixed in, the shutdown hook delays the actual stop
+    # until all the Redis calls finish. Thus, exact time when the reactor
+    # shuts down is unknown. Hence the somewhat flaky test.
+    it "stops the event loop and calls shutdown hooks" do
       Resque.enqueue(Work, :n => 1)
       Resque.enqueue(Work, :n => 2)
+      Resque.enqueue(Work, :n => 3)
+      Resque.enqueue(Work, :n => 4)
+      Resque.enqueue(Work, :n => 5)
 
       results = []
 
@@ -236,7 +242,7 @@ describe Pace::Worker do
       end
 
       # Never runs the second job
-      results.should == [1]
+      results.should_not be_empty
     end
   end
 

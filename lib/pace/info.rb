@@ -19,7 +19,7 @@ module Pace
         save_queues
         save_worker
         reset
-        redis.callback(&block) if block_given?
+        redis.ping { block.call } if block_given?
       end
 
       def uuid
@@ -40,9 +40,14 @@ module Pace
 
       def reset
         @initialized = true
-        @processed = 0
-        @queues = {}
-        @classes = {}
+        @processed   = 0
+        @classes     = {}
+
+        @queues ||= {}
+        @queues.each_key do |key|
+          @queues[key][:processed]   = 0
+          @queues[key][:last_job_at] = nil
+        end
       end
 
       def add_shutdown_hook
@@ -97,11 +102,12 @@ module Pace
         queues.each do |queue, info|
           now = Time.now
           redis.hset(k("info:queues:#{queue}"), "updated_at", now.to_i)
-          redis.hset(k("info:queues:#{queue}"), "last_job_at", info[:last_job_at])
-          redis.hincrby(k("info:queues:#{queue}"), "processed", info[:processed])
 
-          # Redistat
-          save_stats(queue, info[:processed], now)
+          if info[:processed] > 0
+            redis.hset(k("info:queues:#{queue}"), "last_job_at", info[:last_job_at])
+            redis.hincrby(k("info:queues:#{queue}"), "processed", info[:processed])
+            save_stats(queue, info[:processed], now) # Redistat
+          end
         end
       end
 

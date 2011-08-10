@@ -20,12 +20,14 @@ start_time, end_time = Time.now, nil
 # More than enough...
 EM.set_max_timers(75_000)
 
-Pace::Worker.new(Work.queue).start do |job|
-  n = job["args"][0]["n"]
+EM.run do
+  Pace::Worker.new(Work.queue).start do |job|
+    n = job["args"][0]["n"]
 
-  if n == 49_999
-    end_time = Time.now
-    EM.stop
+    if n == 49_999
+      end_time = Time.now
+      EM.stop
+    end
   end
 end
 
