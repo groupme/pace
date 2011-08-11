@@ -19,9 +19,6 @@ Pace.logger.info "Finished adding 10,000 jobs"
 
 start_time, end_time = Time.now, nil
 
-# More than enough...
-EM.set_max_timers(75_000)
-
 EM.run do
   jobs = 0
   EM.add_periodic_timer(5) {
