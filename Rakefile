@@ -2,6 +2,7 @@ require 'bundler'
 require "resque/tasks"
 require "rspec/core/rake_task"
 
+Bundler.setup
 Bundler::GemHelper.install_tasks
 
 $: << File.dirname(__FILE__)
@@ -33,7 +34,7 @@ namespace :bench do
   task :pace_simple do
     require "bench/pace_simple"
   end
-  
+
   desc "Bench throttled worker"
   task :pace_throttled do
     require "bench/pace_throttled"

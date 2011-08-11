@@ -23,9 +23,8 @@ module Pace
         raise ArgumentError.new("Queue unspecified -- pass a queue name or set PACE_QUEUE")
       end
 
-      @queue  = expand_queue_name(queue)
-      @hooks  = Hash.new { |h, k| h[k] = [] }
-      @paused = false
+      @queue = expand_queue_name(queue)
+      @hooks = Hash.new { |h, k| h[k] = [] }
 
       run_hook(:initialize, @queue)
     end
@@ -71,16 +70,15 @@ module Pace
     end
 
     def pause(duration = nil)
-      return false if @paused
+      return false if @redis.paused?
+      @redis.pause
       log("paused at #{Time.now.to_f}")
       EM.add_timer(duration) { resume } if duration
-      @paused = true
     end
 
     def resume
       log("resumed at #{Time.now.to_f}")
-      @paused = false
-      EM.next_tick { fetch_next_job }
+      @redis.resume
     end
 
     def shutdown
@@ -102,7 +100,7 @@ module Pace
     private
 
     def fetch_next_job
-      return if @paused || !@redis.connected
+      return unless @redis.connected
 
       @redis.blpop(queue, 0) do |queue, json|
         EM.next_tick { fetch_next_job }
