@@ -12,6 +12,7 @@ module Pace
 
       def initialize(options = {})
         @queue = basename(options[:queue])
+        raise "queue can't be nil: #{options[:queue]}" unless @queue
         reset
         Pace::Worker.add_hook(:processed) { |job| record(job) }
         Pace::Worker.add_hook(:shutdown) { |hook| save { hook.finished! } }
@@ -129,5 +130,5 @@ end
 
 # Install this by default
 Pace::Worker.add_hook(:initialize) {|queue|
-  Pace::Instruments::Redistat.new(queue)
+  Pace::Instruments::Redistat.new(:queue => queue)
 }
