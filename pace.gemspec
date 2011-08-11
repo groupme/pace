@@ -18,8 +18,12 @@ Gem::Specification.new do |s|
   s.executables   = `git ls-files -- bin/*`.split("\n").map{ |f| File.basename(f) }
   s.require_paths = ["lib"]
 
-  s.add_dependency "em-redis", ">= 0.3.0"
+  # See Gemfile; using a Github fork
+  # s.add_dependency "em-redis", ">= 0.3.0"
+
+  s.add_dependency "eventmachine", ">= 0.12.10"
   s.add_dependency "uuid"
+  s.add_dependency "systemu"
   s.add_dependency "resque"
   s.add_dependency "redistat"
 
