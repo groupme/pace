@@ -5,3 +5,4 @@ pkg/*
 bench/*.log
 config/newrelic.yml
 log/newrelic_*
+.rvmrc

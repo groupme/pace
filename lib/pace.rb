@@ -10,9 +10,11 @@ require "redistat"
 require "pace/event"
 require "pace/worker"
 require "pace/throttled_worker"
-require "pace/info"
-require "pace/load_average"
 require "pace/stats"
+require "pace/instruments/base"
+require "pace/instruments/aberration"
+require "pace/instruments/load"
+require "pace/instruments/redistat"
 
 $uuid = UUID.new
 

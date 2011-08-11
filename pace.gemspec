@@ -6,8 +6,8 @@ Gem::Specification.new do |s|
   s.name        = "pace"
   s.version     = Pace::VERSION
   s.platform    = Gem::Platform::RUBY
-  s.authors     = ["Dave Yeu"]
-  s.email       = ["daveyeu@gmail.com"]
+  s.authors     = ["Dave Yeu", "Brandon Keene"]
+  s.email       = ["daveyeu@gmail.com", "bkeene@gmail.com"]
   s.homepage    = ""
   s.summary     = %q{Resque-compatible job processing in an event loop}
 
@@ -23,9 +23,10 @@ Gem::Specification.new do |s|
 
   s.add_dependency "eventmachine", ">= 0.12.10"
   s.add_dependency "uuid"
-  s.add_dependency "systemu"
+  s.add_dependency "systemu" # macaddr 1.2.0 breaks this
   s.add_dependency "resque"
   s.add_dependency "redistat"
+  s.add_dependency "gsl"
 
   s.add_development_dependency "resque", "~> 1.17.1"
   s.add_development_dependency "rspec", "~> 2.6.0"

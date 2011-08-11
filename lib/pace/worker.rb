@@ -38,11 +38,6 @@ module Pace
       EM.run do
         EM.epoll # Change to kqueue for BSD kernels
 
-        EventMachine::add_periodic_timer(PACE_HEARTBEAT) do
-          Pace::LoadAverage.compute
-          Pace::Info.save
-        end
-
         @redis = Pace.redis_connect
         @redis.reconnback do
           EM.next_tick { fetch_next_job }
@@ -115,8 +110,7 @@ module Pace
 
     def perform(job)
       @block.call(job)
-      Pace::Info.log(queue, job)
-      Pace::LoadAverage.tick
+      run_hook(:processed, job)
     end
 
     def register_signal_handlers
@@ -143,7 +137,9 @@ module Pace
       begin
         hooks = Pace::Worker.global_hooks[type] + @hooks[type]
 
-        unless hooks.empty?
+        if hooks.empty?
+          block.call if block_given?
+        else
           event = Pace::Event.new(hooks, *args, &block)
           event.run
         end
