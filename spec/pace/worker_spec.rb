@@ -146,6 +146,52 @@ describe Pace::Worker do
       results["Play"].should == 5
       results["Total"].should == 10
     end
+
+    it "continues to fetch jobs if the Redis connection drops inside the job callback" do
+      Resque.enqueue(Work, :n => 1)
+      Resque.enqueue(Work, :n => 2)
+      Resque.enqueue(Work, :n => 3)
+
+      results = []
+
+      worker = Pace::Worker.new(Work.queue)
+      worker.start do |job|
+        n = job["args"][0]["n"]
+        results << n
+
+        case n
+        when 1
+          worker.instance_eval { @redis.close_connection }
+        when 3
+          worker.shutdown
+        end
+      end
+
+      results.should == [1, 2, 3]
+    end
+
+    it "continues to fetch jobs if the Redis connection drops when waiting for blpop to return" do
+      Resque.enqueue(Work, :n => 1)
+      Resque.enqueue(Work, :n => 2)
+      Resque.enqueue(Work, :n => 3)
+
+      results = []
+
+      worker = Pace::Worker.new(Work.queue)
+      worker.add_hook(:start) do
+        EM.add_timer(0.1) do
+          worker.instance_eval { @redis.close_connection }
+        end
+      end
+      worker.start do |job|
+        n = job["args"][0]["n"]
+        results << n
+        sleep 0.1
+        worker.shutdown if n == 3
+      end
+
+      results.should == [1, 2, 3]
+    end
   end
 
   describe "event hooks" do

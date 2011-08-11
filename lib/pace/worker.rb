@@ -48,7 +48,15 @@ module Pace
         end
 
         @redis = Pace.redis_connect
-        EM.next_tick { fetch_next_job }
+        @redis.reconnback do
+          EM.next_tick { fetch_next_job }
+        end
+
+        # Wait until Redis is connected before beginning the fetch loop.
+        @redis.ping do
+          EM.next_tick { fetch_next_job }
+        end
+
         run_hook(:start)
       end
     end
@@ -94,16 +102,9 @@ module Pace
     private
 
     def fetch_next_job
-      return if @paused
+      return if @paused || !@redis.connected
 
-      # Ugh, a guard against dropped Redis connections. Since em-redis doesn't
-      # set a failed state or expose errbacks on its deferrable when #unbind is
-      # called, let's resort to setting a timer that fires if blpop's callback
-      # is never invoked.
-      timer = EM::Timer.new(30) { fetch_next_job }
-
-      @redis.blpop(queue, 15) do |queue, json|
-        timer.cancel
+      @redis.blpop(queue, 0) do |queue, json|
         EM.next_tick { fetch_next_job }
 
         if json

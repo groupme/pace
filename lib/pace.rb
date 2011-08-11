@@ -39,6 +39,10 @@ module Pace
       args[:password] ||= url.password
       args[:db]       ||= url.path[1..-1].to_i
 
+      # For debugging. Don't forget to the set the logger.level to DEBUG.
+      # args[:logger] = Pace.logger
+      # Pace.logger.level = Logger::DEBUG
+
       EM::Protocols::Redis.connect(args)
     end
 
