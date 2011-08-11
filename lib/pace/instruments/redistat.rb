@@ -58,7 +58,7 @@ module Pace
 
       def save_queue
         redis.hset(k("info:queues:#{queue}"), "updated_at", Time.now.to_i)
-        redis.hset(k("info:queues:#{queue}"), "last_job_at", last_job_at.to_i)
+        redis.hset(k("info:queues:#{queue}"), "last_job_at", last_job_at.to_i) if last_job_at
         redis.hincrby(k("info:queues:#{queue}"), "processed", processed)
       end
 

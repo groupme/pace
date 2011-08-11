@@ -70,5 +70,14 @@ describe Pace::Instruments::Redistat do
       Resque.redis.hget("pace:info:queues:pace", "updated_at").should == later.to_i.to_s
       Resque.redis.hget("pace:info:queues:pace", "last_job_at").should < later.to_i.to_s
     end
+
+    it "doesn't set last_job_at to 0" do
+      Resque.redis.hset("pace:info:queues:pace", "last_job_at", Time.now.to_i)
+
+      # Save
+      EM.run { @instrument.save { EM.stop } }
+      @instrument.last_job_at.should be_nil
+      Resque.redis.hget("pace:info:queues:pace", "last_job_at").to_i.should > 0
+    end
   end
 end
