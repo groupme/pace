@@ -24,9 +24,9 @@ module Pace
       end
 
       if options[:jobs_per_second]
-        log "Throttling to #{@throttle_limit} jobs per second"
         @throttle_interval = 1.0
         @throttle_limit = @throttle_credits = options[:jobs_per_second] * @throttle_interval
+        log "Throttling to #{@throttle_limit} jobs per second"
       end
 
       @queue = expand_queue_name(queue)
