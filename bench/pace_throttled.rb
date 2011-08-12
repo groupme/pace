@@ -14,23 +14,29 @@ end
 
 Pace.logger.info "Starting benchmark..."
 
-10_000.times { |n| Resque.enqueue(Work, :n => n) }
-Pace.logger.info "Finished adding 10,000 jobs"
+Resque.redis.del("queue:pace")
+
+max_jobs = 5000
+max_jobs.times { |n| Resque.enqueue(Work, :n => n) }
+Pace.logger.info "Finished adding #{max_jobs} jobs"
 
 start_time, end_time = Time.now, nil
 
 EM.run do
   jobs = 0
-  EM.add_periodic_timer(5) {
-    Pace.logger.info("jobs per second: #{jobs / 5.0}")
+  interval = 1.0
+  EM.add_periodic_timer(interval) {
+    Pace.logger.info("jobs per second: #{jobs / interval}")
     jobs = 0
   }
-  Pace::ThrottledWorker.new(Work.queue, 500).start do |job|
-    jobs += 1
-    n = job["args"][0]["n"]
 
-    if n == 9_999
-      end_time = Time.now
+  Pace::Instruments::Load.new
+  Pace::Worker.new(Work.queue, :jobs_per_second => 100).start do |job|
+    n = job["args"][0]["n"]
+    jobs += 1 if n
+
+    end_time = Time.now
+    if n >= (max_jobs - 1)
       EM.stop
     end
   end

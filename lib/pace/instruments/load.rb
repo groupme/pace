@@ -1,7 +1,7 @@
 module Pace
   module Instruments
     class Load < Base
-      INTERVAL  = 10
+      INTERVAL  = 10.0 # seconds
       FSHIFT    = 11
       FIXED_1   = 1 << FSHIFT
       EXP_1     = 1884.0 # 1/exp(5sec/1min) as fixed-point

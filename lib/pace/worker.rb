@@ -16,11 +16,17 @@ module Pace
       end
     end
 
-    def initialize(queue = nil)
+    def initialize(queue = nil, options = {})
       queue ||= ENV["PACE_QUEUE"]
 
       if queue.nil? || queue.empty?
         raise ArgumentError.new("Queue unspecified -- pass a queue name or set PACE_QUEUE")
+      end
+
+      if options[:jobs_per_second]
+        log "Throttling to #{@throttle_limit} jobs per second"
+        @throttle_interval = 1.0
+        @throttle_limit = @throttle_credits = options[:jobs_per_second] * @throttle_interval
       end
 
       @queue = expand_queue_name(queue)
@@ -35,16 +41,25 @@ module Pace
       log "Starting up"
       register_signal_handlers
 
+      if throttled?
+        EM::add_periodic_timer(@throttle_interval) do
+          EM.next_tick { fetch_next_job } if @throttle_credits < 1
+          @throttle_credits = @throttle_limit
+        end
+      end
+
       EM.run do
         EM.epoll # Change to kqueue for BSD kernels
 
         @redis = Pace.redis_connect
         @redis.reconnback do
+          log "reconnected to redis"
           EM.next_tick { fetch_next_job }
         end
 
         # Wait until Redis is connected before beginning the fetch loop.
         @redis.ping do
+          log "connected to redis"
           EM.next_tick { fetch_next_job }
         end
 
@@ -64,12 +79,12 @@ module Pace
     def pause(duration = nil)
       return false if @redis.paused?
       @redis.pause
-      log("paused at #{Time.now.to_f}")
+      log "paused at #{Time.now.to_f}"
       EM.add_timer(duration) { resume } if duration
     end
 
     def resume
-      log("resumed at #{Time.now.to_f}")
+      log "resumed at #{Time.now.to_f}"
       @redis.resume
     end
 
@@ -89,10 +104,18 @@ module Pace
       @hooks[event] << block
     end
 
+    def throttled?
+      @throttle_limit
+    end
+
     private
 
     def fetch_next_job
       return unless @redis.connected
+
+      if throttled?
+        @throttle_credits < 1 ? return : @throttle_credits -= 1
+      end
 
       @redis.blpop(queue, 0) do |queue, json|
         EM.next_tick { fetch_next_job }
