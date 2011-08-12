@@ -41,13 +41,6 @@ module Pace
       log "Starting up"
       register_signal_handlers
 
-      if throttled?
-        EM::add_periodic_timer(@throttle_interval) do
-          EM.next_tick { fetch_next_job } if @throttle_credits < 1
-          @throttle_credits = @throttle_limit
-        end
-      end
-
       EM.run do
         EM.epoll # Change to kqueue for BSD kernels
 
@@ -61,6 +54,14 @@ module Pace
         @redis.ping do
           log "connected to redis"
           EM.next_tick { fetch_next_job }
+        end
+
+        # Install throttle refresh
+        if throttled?
+          EM::add_periodic_timer(@throttle_interval) do
+            EM.next_tick { fetch_next_job } if @throttle_credits < 1
+            @throttle_credits = @throttle_limit
+          end
         end
 
         run_hook(:start)
