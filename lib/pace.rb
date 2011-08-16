@@ -11,7 +11,7 @@ require "pace/event"
 require "pace/worker"
 require "pace/stats"
 require "pace/instruments/base"
-require "pace/instruments/aberration"
+# require "pace/instruments/aberration"
 require "pace/instruments/load"
 require "pace/instruments/redistat"
 

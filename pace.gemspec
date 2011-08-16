@@ -26,7 +26,7 @@ Gem::Specification.new do |s|
   s.add_dependency "systemu" # macaddr 1.2.0 breaks this
   s.add_dependency "resque"
   s.add_dependency "redistat"
-  s.add_dependency "gsl"
+  # s.add_dependency "gsl"
 
   s.add_development_dependency "rake"
   s.add_development_dependency "resque", "~> 1.17.1"
