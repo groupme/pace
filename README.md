@@ -1,11 +1,15 @@
 # Pace - A Resque Reactor #
 
-More docs to come...
+Pace provides a high-throughput way to process Resque jobs inside an
+EventMachine reactor.
 
-In short, the goals are:
+When combined with EM::HttpRequest you can send __thousands of 
+requests per second__ to a remote web service.
 
- * Performance
- * Transparency via instrumentation (TODO)
+Tested under:
+
+* REE 1.8.7
+* MRI 1.9.2 (best memory performance)
 
 ## Examples ##
 
@@ -21,28 +25,38 @@ enqueuing Resque jobs:
     > Resque.enqueue(MyJob)
     > 10.times { |n| Resque.enqueue(MyJob, :n => n) }
 
-## Single Queue
 
-    Pace.start(:queue => "normal") do |job|
-      ...
+In a separate process, start up a worker:
+
+    require 'pace'
+    
+    worker = Pace::Worker.new("normal")
+    worker.start do |job|
+      klass = job["class"]
+      options = job["args"].first
+      
+      # do work with options
     end
 
-## Multiple Queues
+## Throttling
 
-Like Resque, you can specify multiple queues:
+It's very easy to overwhelm a remote service with pace. You can specify
+the maximum number of jobs to consumer per second.
 
-    Pace.start(:queues => ["low", "high"]) do |job|
-      ...
-    end
+    Pace::Worker.new("queue", :jobs_per_second => 100)
 
-## Pausing and resuming
+## Pause/Resume
 
-If you need to pause a pace, simply:
+If you need to pause a worker (for example, during remote service failure):
 
-    Pace.pause
+    worker.pause
     
 And when ready:
 
-    Pace.resume
+    worker.resume
     
-    
+You can also pause for a set period of time. The worker will resume 
+automatically.
+
+    worker.pause(0.5) # 500ms
+
