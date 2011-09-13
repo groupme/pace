@@ -37,7 +37,7 @@ module Pace
     end
 
     def queue
-      queue ||= Pace::Queue.new
+      @queue ||= Pace::Queue.new
     end
 
     def redis_connect
