@@ -11,6 +11,10 @@ module Pace
         @redis ||= Pace.redis_connect
       end
 
+      def redis=(r)
+        @redis = r
+      end
+
       def expand_name(queue)
         parts = [queue]
         parts.unshift("resque:queue") unless queue.index(":")
