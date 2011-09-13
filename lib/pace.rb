@@ -9,6 +9,7 @@ require "logger"
 require "redistat"
 require "pace/event"
 require "pace/worker"
+require "pace/queue"
 require "pace/stats"
 require "pace/instruments/base"
 # require "pace/instruments/aberration"
@@ -29,6 +30,11 @@ module Pace
       else
         logger.info("%s" % message)
       end
+    end
+
+    def enqueue(queue, klass, *args, &block)
+      @queue ||= Pace::Queue.new
+      @queue.enqueue(queue, klass, args, block)
     end
 
     def redis_connect
