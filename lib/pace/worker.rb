@@ -29,7 +29,7 @@ module Pace
         log "Throttling to #{@throttle_limit} jobs per second"
       end
 
-      @queue = expand_queue_name(queue)
+      @queue = Pace::Queue.expand_name(queue)
       @hooks = Hash.new { |h, k| h[k] = [] }
 
       run_hook(:initialize, @queue)
@@ -68,15 +68,6 @@ module Pace
       end
     end
 
-    def enqueue(queue, klass, *args, &block)
-      # Create a Redis instance that sticks around for enqueuing
-      @enqueue_redis ||= Pace.redis_connect
-
-      queue = expand_queue_name(queue)
-      job   = {:class => klass.to_s, :args => args}.to_json
-      @enqueue_redis.rpush(queue, job, &block)
-    end
-
     def pause(duration = nil)
       return false if @redis.paused?
       @redis.pause
@@ -107,6 +98,10 @@ module Pace
 
     def throttled?
       @throttle_limit
+    end
+
+    def enqueue(queue, klass, *args, &block)
+      Pace.enqueue(queue, klass, *args, &block)
     end
 
     private
@@ -141,13 +136,6 @@ module Pace
       trap('TERM') { shutdown }
       trap('QUIT') { shutdown }
       trap('INT')  { shutdown }
-    end
-
-    def expand_queue_name(queue)
-      parts = [queue]
-      parts.unshift("resque:queue") unless queue.index(":")
-      parts.unshift(Pace.namespace) unless Pace.namespace.nil?
-      parts.join(":")
     end
 
     def log_exception(message, exception)
