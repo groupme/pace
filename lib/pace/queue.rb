@@ -10,12 +10,15 @@ module Pace
     end
 
     def enqueue(queue, klass, args, block)
-      # Create a Redis instance that sticks around for enqueuing
-      @enqueue_redis ||= Pace.redis_connect
-
       queue = self.class.expand_name(queue)
       job   = {:class => klass.to_s, :args => args}.to_json
-      @enqueue_redis.rpush(queue, job, &block)
+      redis.rpush(queue, job, &block)
+    end
+
+    private
+
+    def redis
+      @redis ||= Pace.redis_connect
     end
   end
 end
