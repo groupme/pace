@@ -9,16 +9,14 @@ module Pace
       end
     end
 
+    def initialize
+      @redis = Pace.redis_connect
+    end
+
     def enqueue(queue, klass, args, block)
       queue = self.class.expand_name(queue)
       job   = {:class => klass.to_s, :args => args}.to_json
-      redis.rpush(queue, job, &block)
-    end
-
-    private
-
-    def redis
-      @redis ||= Pace.redis_connect
+      @redis.rpush(queue, job, &block)
     end
   end
 end

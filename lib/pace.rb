@@ -32,9 +32,12 @@ module Pace
       end
     end
 
-    def enqueue(queue, klass, *args, &block)
-      @queue ||= Pace::Queue.new
-      @queue.enqueue(queue, klass, args, block)
+    def enqueue(queue_name, klass, *args, &block)
+      queue.enqueue(queue_name, klass, args, block)
+    end
+
+    def queue
+      queue ||= Pace::Queue.new
     end
 
     def redis_connect
