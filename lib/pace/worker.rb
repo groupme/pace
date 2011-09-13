@@ -100,10 +100,6 @@ module Pace
       @throttle_limit
     end
 
-    def enqueue(queue, klass, *args, &block)
-      Pace.enqueue(queue, klass, *args, &block)
-    end
-
     private
 
     def fetch_next_job
