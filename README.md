@@ -3,7 +3,7 @@
 Pace provides a high-throughput way to process Resque jobs inside an
 EventMachine reactor.
 
-When combined with EM::HttpRequest you can send __thousands of 
+When combined with EM::HttpRequest you can send __thousands of
 requests per second__ to a remote web service.
 
 Tested under:
@@ -29,12 +29,12 @@ enqueuing Resque jobs:
 In a separate process, start up a worker:
 
     require 'pace'
-    
+
     worker = Pace::Worker.new("normal")
     worker.start do |job|
       klass = job["class"]
       options = job["args"].first
-      
+
       # do work with options
     end
 
@@ -50,16 +50,16 @@ the maximum number of jobs to consume per second.
 If you need to pause a worker (for example, during remote service failure):
 
     worker.pause
-    
+
 And when ready:
 
     worker.resume
-    
-You can also pause for a set period of time. The worker will resume 
+
+You can also pause for a set period of time. The worker will resume
 automatically.
 
     worker.pause(0.5) # 500ms
-    
+
 ## Instrumentation
 
 ### Load Average
@@ -67,15 +67,11 @@ automatically.
 By default, pace will log its load averages every 10 seconds:
 
     load averages: 0.0 0.0 0.0 0.0
-    
+
 The format is:
 
     load averages: <sec> <1min> <5min> <15min>
-    
+
 The algorithm is borrowed from linux load average computation and only gives a
 rough estimate as time gets larger, but the per-second load average sample
 is completely accurate.
-
-### Redistat
-
-TODO
