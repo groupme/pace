@@ -6,15 +6,12 @@ require "json"
 require "uri"
 require "uuid"
 require "logger"
-require "redistat"
 require "pace/event"
 require "pace/worker"
 require "pace/queue"
-require "pace/stats"
 require "pace/instruments/base"
 # require "pace/instruments/aberration"
 require "pace/instruments/load"
-require "pace/instruments/redistat"
 
 $uuid = UUID.new
 

@@ -24,12 +24,11 @@ Gem::Specification.new do |s|
   s.add_dependency "eventmachine", ">= 0.12.10"
   s.add_dependency "uuid"
   s.add_dependency "systemu" # macaddr 1.2.0 breaks this
-  s.add_dependency "resque"
-  s.add_dependency "redistat"
   # s.add_dependency "gsl"
 
   s.add_development_dependency "rake"
   s.add_development_dependency "resque", "~> 1.17.1"
   s.add_development_dependency "rspec", "~> 2.6.0"
+  s.add_development_dependency "i18n"
   s.add_development_dependency "hoptoad_notifier", "~> 2.4.11"
 end
