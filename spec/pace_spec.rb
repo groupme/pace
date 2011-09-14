@@ -26,6 +26,7 @@ describe Pace do
       ).and_return(connection)
 
       Pace.redis_connect.should == connection
+      Pace.redis_options = nil
     end
 
     it "can be set using the PACE_REDIS environment variable" do

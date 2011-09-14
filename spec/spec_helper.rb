@@ -22,5 +22,7 @@ RSpec.configure do |config|
     Pace.stub(:logger).and_return(Logger.new("/dev/null"))
     Resque.dequeue(Work)
     Resque.dequeue(Play)
+
+    ENV["PACE_REDIS"] = nil
   end
 end
