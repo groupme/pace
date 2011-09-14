@@ -16,7 +16,6 @@ begin
   # HoptoadNotifier requires active_support anyway,
   # but forgot to load their actual dependencies.
   require 'hoptoad_notifier'
-  require "i18n"
   require "active_support/core_ext"
 end
 
