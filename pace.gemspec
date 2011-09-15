@@ -18,10 +18,8 @@ Gem::Specification.new do |s|
   s.executables   = `git ls-files -- bin/*`.split("\n").map{ |f| File.basename(f) }
   s.require_paths = ["lib"]
 
-  # See Gemfile; using a Github fork
-  # s.add_dependency "em-redis", ">= 0.3.0"
-
   s.add_dependency "eventmachine", ">= 0.12.10"
+  s.add_dependency "em-hiredis", ">= 0.1.0"
   s.add_dependency "uuid"
   s.add_dependency "systemu" # macaddr 1.2.0 breaks this
   # s.add_dependency "gsl"
