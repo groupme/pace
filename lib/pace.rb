@@ -1,7 +1,7 @@
 PACE_HEARTBEAT = 10.0 # seconds
 
 require "eventmachine"
-require "em-redis"
+require "em-hiredis"
 require "json"
 require "uri"
 require "uuid"
@@ -10,8 +10,8 @@ require "pace/event"
 require "pace/worker"
 require "pace/queue"
 require "pace/instruments/base"
-# require "pace/instruments/aberration"
 require "pace/instruments/load"
+# require "pace/instruments/aberration"
 
 $uuid = UUID.new
 
@@ -19,7 +19,7 @@ module Pace
   class << self
     # Set Pace.namespace if you're using Redis::Namespace.
     attr_accessor :namespace
-    attr_accessor :redis_options
+    attr_accessor :redis_url
 
     def log(message, start_time = nil)
       if start_time
@@ -30,19 +30,8 @@ module Pace
     end
 
     def redis_connect
-      args = redis_options.nil? ? {} : redis_options.dup
-
-      url = URI(args.delete(:url) || ENV["PACE_REDIS"] || "redis://127.0.0.1:6379/0")
-      args[:host]     ||= url.host
-      args[:port]     ||= url.port
-      args[:password] ||= url.password
-      args[:db]       ||= url.path[1..-1].to_i
-
-      # For debugging. Don't forget to the set the logger.level to DEBUG.
-      # args[:logger] = Pace.logger
-      # Pace.logger.level = Logger::DEBUG
-
-      EM::Protocols::Redis.connect(args)
+      EM::Hiredis.logger = Pace.logger
+      EM::Hiredis.connect(redis_url)
     end
 
     def logger

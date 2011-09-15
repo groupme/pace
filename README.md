@@ -38,6 +38,14 @@ In a separate process, start up a worker:
       # do work with options
     end
 
+## Redis
+
+Pace connects to Redis with a URI that's looked up in the following order:
+
+ * Pace.redis_url attr_accessor
+ * REDIS_URL environment variable
+ * Defaults to 127.0.0.1:6379/0
+
 ## Throttling
 
 It's very easy to overwhelm a remote service with pace. You can specify

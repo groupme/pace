@@ -32,6 +32,9 @@ module Pace
       @queue = Pace::Queue.expand_name(queue)
       @hooks = Hash.new { |h, k| h[k] = [] }
 
+      @paused   = false
+      @resuming = false
+
       run_hook(:initialize, @queue)
     end
 
@@ -45,39 +48,46 @@ module Pace
         EM.epoll # Change to kqueue for BSD kernels
 
         @redis = Pace.redis_connect
-        @redis.reconnback do
-          log "reconnected to redis"
-          EM.next_tick { fetch_next_job }
-        end
-
-        # Wait until Redis is connected before beginning the fetch loop.
-        @redis.ping do
-          log "connected to redis"
-          EM.next_tick { fetch_next_job }
+        @redis.on(:reconnected) do
+          log "Reconnected to Redis, restarting fetch loop"
+          fetch_next_job
         end
 
         # Install throttle refresh
         if throttled?
           EM::add_periodic_timer(@throttle_interval) do
-            EM.next_tick { fetch_next_job } if @throttle_credits < 1
+            resume if (@throttle_credits < 1) && @paused
             @throttle_credits = @throttle_limit
           end
         end
 
+        EM.next_tick { fetch_next_job }
         run_hook(:start)
       end
     end
 
     def pause(duration = nil)
-      return false if @redis.paused?
-      @redis.pause
+      return false if @paused
+
       log "paused at #{Time.now.to_f}"
+      @paused = true
+
       EM.add_timer(duration) { resume } if duration
     end
 
     def resume
-      log "resumed at #{Time.now.to_f}"
-      @redis.resume
+      if @paused && !@resuming
+        @resuming = true
+
+        EM.next_tick do
+          log "resumed at #{Time.now.to_f}"
+          @resuming = false
+          @paused   = false
+          fetch_next_job
+        end
+      else
+        false
+      end
     end
 
     def shutdown
@@ -103,14 +113,19 @@ module Pace
     private
 
     def fetch_next_job
-      return unless @redis.connected
+      return if @paused
 
       if throttled?
-        @throttle_credits < 1 ? return : @throttle_credits -= 1
+        if @throttle_credits < 1
+          pause
+          return
+        else
+          @throttle_credits -= 1
+        end
       end
 
       @redis.blpop(queue, 0) do |queue, json|
-        EM.next_tick { fetch_next_job }
+        EM.next_tick { fetch_next_job } unless @paused
 
         if json
           begin
