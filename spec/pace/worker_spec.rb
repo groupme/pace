@@ -374,5 +374,19 @@ describe Pace::Worker do
         worker.shutdown
       end
     end
+
+    it "does not start multiple fetch loops if resume is called multiple times when paused" do
+      Resque.enqueue(Work)
+
+      worker = Pace::Worker.new(Work.queue)
+      worker.start do |job|
+        worker.pause
+
+        EM.should_receive(:next_tick).once
+        worker.resume
+        worker.resume
+        EM.stop
+      end
+    end
   end
 end
