@@ -11,7 +11,6 @@ require "pace/worker"
 require "pace/queue"
 require "pace/instruments/base"
 require "pace/instruments/load"
-# require "pace/instruments/aberration"
 
 $uuid = UUID.new
 
