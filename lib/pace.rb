@@ -9,8 +9,6 @@ require "logger"
 require "pace/event"
 require "pace/worker"
 require "pace/queue"
-require "pace/instruments/base"
-require "pace/instruments/load"
 
 $uuid = UUID.new
 

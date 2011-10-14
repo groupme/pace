@@ -30,7 +30,6 @@ EM.run do
     jobs = 0
   }
 
-  Pace::Instruments::Load.new
   Pace::Worker.new(Work.queue, :jobs_per_second => 100).start do |job|
     n = job["args"][0]["n"]
     jobs += 1 if n
