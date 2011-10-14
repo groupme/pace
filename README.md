@@ -67,19 +67,3 @@ You can also pause for a set period of time. The worker will resume
 automatically.
 
     worker.pause(0.5) # 500ms
-
-## Instrumentation
-
-### Load Average
-
-By default, pace will log its load averages every 10 seconds:
-
-    load averages: 0.0 0.0 0.0 0.0
-
-The format is:
-
-    load averages: <sec> <1min> <5min> <15min>
-
-The algorithm is borrowed from linux load average computation and only gives a
-rough estimate as time gets larger, but the per-second load average sample
-is completely accurate.
