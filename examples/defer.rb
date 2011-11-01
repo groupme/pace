@@ -11,7 +11,7 @@ worker.start do |job|
     rand(10).times { sleep 0.1 }
   }
   callback = proc { |result|
-    Pace.log(job.inspect, start_time)
+    Pace.logger.info(job.inspect)
   }
 
   EM.defer operation, callback

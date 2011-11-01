@@ -6,5 +6,5 @@ worker.start do |job|
     worker.instance_eval { @redis.close_connection }
   end
 
-  Pace.log(job.inspect, Time.now)
+  Pace.logger.info(job.inspect)
 end

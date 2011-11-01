@@ -26,7 +26,7 @@ module Pace
       if options[:jobs_per_second]
         @throttle_interval = 1.0
         @throttle_limit = @throttle_credits = options[:jobs_per_second] * @throttle_interval
-        log "Throttling to #{@throttle_limit} jobs per second"
+        Pace.logger.info "Throttling to #{@throttle_limit} jobs per second"
       end
 
       @queue = Pace::Queue.expand_name(queue)
@@ -41,17 +41,11 @@ module Pace
     def start(&block)
       @block = block
 
-      log "Starting up"
+      Pace.logger.info "Starting up"
       register_signal_handlers
 
       EM.run do
         EM.epoll # Change to kqueue for BSD kernels
-
-        @redis = Pace.redis_connect
-        @redis.on(:reconnected) do
-          log "Reconnected to Redis, restarting fetch loop"
-          fetch_next_job
-        end
 
         # Install throttle refresh
         if throttled?
@@ -61,7 +55,17 @@ module Pace
           end
         end
 
-        EM.next_tick { fetch_next_job }
+        @redis = Pace.redis_connect
+        @redis.callback do
+          Pace.logger.info "Connected to Redis, starting fetch loop"
+          EM.next_tick { fetch_next_job }
+        end
+
+        @redis.on(:reconnected) do
+          Pace.logger.info "Reconnected to Redis, restarting fetch loop"
+          EM.next_tick { fetch_next_job }
+        end
+
         run_hook(:start)
       end
     end
@@ -69,7 +73,7 @@ module Pace
     def pause(duration = nil)
       return false if @paused
 
-      log "paused at #{Time.now.to_f}"
+      Pace.logger.info "Paused at #{Time.now.to_f}"
       @paused = true
 
       EM.add_timer(duration) { resume } if duration
@@ -80,7 +84,7 @@ module Pace
         @resuming = true
 
         EM.next_tick do
-          log "resumed at #{Time.now.to_f}"
+          Pace.logger.info "Resumed at #{Time.now.to_f}"
           @resuming = false
           @paused   = false
           fetch_next_job
@@ -91,15 +95,11 @@ module Pace
     end
 
     def shutdown
-      log "Shutting down"
+      Pace.logger.info "Shutting down"
       run_hook(:shutdown) { EM.stop }
 
       # Parachute...
       EM.add_timer(10) { raise("Dying by exception") }
-    end
-
-    def log(message, start_time = nil)
-      Pace.log(message, start_time)
     end
 
     def add_hook(event, &block)
