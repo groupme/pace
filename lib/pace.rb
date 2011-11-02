@@ -19,7 +19,7 @@ module Pace
     attr_accessor :redis_url
 
     def redis_connect
-      EM::Hiredis.logger.level = Logger::INFO
+      EM::Hiredis.logger = logger
       EM::Hiredis.connect(redis_url)
     end
 
@@ -27,9 +27,8 @@ module Pace
       @logger ||= begin
         logger = Logger.new(STDOUT)
         logger.level = Logger::INFO
-        logger.progname = "pace"
         logger.formatter = Proc.new { |severity, datetime, progname, msg|
-          "[#{progname}] #{String === msg ? msg : msg.inspect}\n"
+          "#{String === msg ? msg : msg.inspect}\n"
         }
         logger
       end
