@@ -19,7 +19,7 @@ module Pace
     attr_accessor :redis_url
 
     def redis_connect
-      EM::Hiredis.logger = Pace.logger
+      EM::Hiredis.logger.level = Logger::INFO
       EM::Hiredis.connect(redis_url)
     end
 

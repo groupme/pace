@@ -19,7 +19,8 @@ RSpec.configure do |config|
     # We explicitly want to test the Info shutdown hook.
     Pace::Worker.clear_hooks
 
-    Pace.stub(:logger).and_return(Logger.new("/dev/null"))
+    EM::Hiredis.logger = Logger.new("/dev/null")
+    Pace.logger = Logger.new("/dev/null")
     Resque.dequeue(Work)
     Resque.dequeue(Play)
 
