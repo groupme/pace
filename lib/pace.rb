@@ -18,14 +18,6 @@ module Pace
     attr_accessor :namespace
     attr_accessor :redis_url
 
-    def log(message, start_time = nil)
-      if start_time
-        logger.info("%s (%0.6fs)" % [message, Time.now - start_time])
-      else
-        logger.info("%s" % message)
-      end
-    end
-
     def redis_connect
       EM::Hiredis.logger = Pace.logger
       EM::Hiredis.connect(redis_url)
@@ -35,6 +27,10 @@ module Pace
       @logger ||= begin
         logger = Logger.new(STDOUT)
         logger.level = Logger::INFO
+        logger.progname = "pace"
+        logger.formatter = Proc.new { |severity, datetime, progname, msg|
+          "[#{progname}] #{String === msg ? msg : msg.inspect}\n"
+        }
         logger
       end
     end

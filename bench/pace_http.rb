@@ -16,7 +16,7 @@
 require "pace"
 
 Pace.logger = Logger.new(File.join(File.dirname(__FILE__), "pace_http.log"))
-Pace.log("Starting #{'%0.6f' % Time.now}")
+Pace.logger.info("Starting #{'%0.6f' % Time.now}")
 
 Pace::Worker.new.start do |job|
   start_time = Time.now
@@ -29,6 +29,6 @@ Pace::Worker.new.start do |job|
     :request => "/?#{args}"
   )
   http.callback do |r|
-    Pace.log("http://localhost:9000/?#{args}", start_time)
+    Pace.logger.info("http://localhost:9000/?#{args}")
   end
 end
