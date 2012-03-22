@@ -1,26 +1,27 @@
 module Pace
   class Queue
-    class << self
-      def enqueue(queue, klass, *args, &block)
-        queue = expand_name(queue)
-        job   = {:class => klass.to_s, :args => args}.to_json
-        redis.rpush(queue, job, &block)
-      end
+    attr_reader :redis
 
-      def redis
-        @redis ||= Pace.redis_connect
-      end
+    def initialize(redis_url)
+      @redis = EM::Hiredis.connect(redis_url)
+    end
 
-      def redis=(r)
-        @redis = r
-      end
+    def self.expand_name(queue)
+      parts = [queue]
+      parts.unshift("resque:queue") unless queue.index(":")
+      parts.unshift(Pace.namespace) unless Pace.namespace.nil?
+      parts.join(":")
+    end
 
-      def expand_name(queue)
-        parts = [queue]
-        parts.unshift("resque:queue") unless queue.index(":")
-        parts.unshift(Pace.namespace) unless Pace.namespace.nil?
-        parts.join(":")
-      end
+    def enqueue(queue, klass, *args, &block)
+      job = {:class => klass.to_s, :args => args}.to_json
+      redis.rpush(name_for(queue), job, &block)
+    end
+
+    private
+
+    def name_for(queue)
+      self.class.expand_name(queue)
     end
   end
 end
