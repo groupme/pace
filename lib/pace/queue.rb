@@ -2,15 +2,17 @@ module Pace
   class Queue
     attr_reader :redis
 
-    def initialize(redis_url)
-      @redis = EM::Hiredis.connect(redis_url)
+    class << self
+      def expand_name(queue)
+        parts = [queue]
+        parts.unshift("resque:queue") unless queue.index(":")
+        parts.unshift(Pace.namespace) unless Pace.namespace.nil?
+        parts.join(":")
+      end
     end
 
-    def self.expand_name(queue)
-      parts = [queue]
-      parts.unshift("resque:queue") unless queue.index(":")
-      parts.unshift(Pace.namespace) unless Pace.namespace.nil?
-      parts.join(":")
+    def initialize(redis_url)
+      @redis = EM::Hiredis.connect(redis_url)
     end
 
     def enqueue(queue, klass, *args, &block)
