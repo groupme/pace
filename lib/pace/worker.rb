@@ -3,8 +3,8 @@ module Pace
     attr_reader :queue
 
     class << self
-      def add_hook(event, &block)
-        global_hooks[event] << block
+      def add_hook(event, callback = nil, &block)
+        global_hooks[event] << (callback || block)
       end
 
       def global_hooks
@@ -104,8 +104,8 @@ module Pace
       EM.add_timer(10) { raise("Dying by exception") }
     end
 
-    def add_hook(event, &block)
-      @hooks[event] << block
+    def add_hook(event, callback = nil, &block)
+      @hooks[event] << (callback || block)
     end
 
     def throttled?
