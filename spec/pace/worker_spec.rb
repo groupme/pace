@@ -1,6 +1,9 @@
 require "spec_helper"
 
 describe Pace::Worker do
+  let(:worker)  { Pace::Worker.new(Work.queue) }
+  let(:results) { [] }
+
   describe "#initialize" do
     context "when the given name has no colons" do
       it "prepends the Resque default queue 'namespace'" do
@@ -51,66 +54,35 @@ describe Pace::Worker do
   end
 
   describe "#start" do
-    before do
-      @worker = Pace::Worker.new(Work.queue)
-    end
-
     it "yields a serialized Resque jobs" do
       Resque.enqueue(Work, :foo => 1, :bar => 2)
 
-      @worker.start do |job|
+      worker.start do |job|
         job["class"].should == "Work"
         job["args"].should == [{"foo" => 1, "bar" => 2}]
-        EM.stop
+        worker.shutdown
       end
     end
 
     it "continues to pop jobs until stopped" do
-      Resque.enqueue(Work, :n => 1)
-      Resque.enqueue(Work, :n => 2)
-      Resque.enqueue(Work, :n => 3)
-      Resque.enqueue(Work, :n => 4)
-      Resque.enqueue(Work, :n => 5)
+      1.upto(5) { |n| Resque.enqueue(Work, :n => n) }
 
-      results = []
-
-      @worker.start do |job|
-        n = job["args"].first["n"]
+      worker.start do |job|
+        n = job["args"][0]["n"]
         results << n
-        EM.stop if n == 5
+        worker.shutdown if n == 5
       end
 
       results.should == [1, 2, 3, 4, 5]
     end
 
-    it "rescues any errors in the passed block" do
-      Resque.enqueue(Work, :n => 1)
-      Resque.enqueue(Work, :n => 2)
-      Resque.enqueue(Work, :n => 3)
-
-      results = []
-
-      @worker.start do |job|
-        n = job["args"].first["n"]
-
-        raise "FAIL" if n == 1
-        results << n
-        EM.stop if n == 3
-      end
-
-      results.should == [2, 3]
-    end
-
     it "works if run inside an existing reactor" do
       Resque.enqueue(Work)
 
-      results = []
-
       EM.run do
-        worker = Pace::Worker.new(Work.queue)
         worker.start do |job|
           results << job
-          EM.stop
+          worker.shutdown
         end
       end
 
@@ -134,8 +106,7 @@ describe Pace::Worker do
         block = Proc.new do |job|
           results[job["class"]] += 1
           results["Total"] += 1
-
-          EM.stop if results["Total"] == 10
+          worker.shutdown if results["Total"] == 10
         end
 
         worker_1.start(&block)
@@ -147,61 +118,91 @@ describe Pace::Worker do
       results["Total"].should == 10
     end
 
-    it "continues to fetch jobs if the Redis connection drops inside the job callback" do
-      Resque.enqueue(Work, :n => 1)
-      Resque.enqueue(Work, :n => 2)
-      Resque.enqueue(Work, :n => 3)
-
-      results = []
-
-      worker = Pace::Worker.new(Work.queue)
-      worker.start do |job|
-        n = job["args"][0]["n"]
-        results << n
-
-        case n
-        when 1
-          worker.instance_eval { @redis.close_connection }
-        when 3
-          worker.shutdown
-        end
+    context "errors" do
+      before do
+        1.upto(3) { |n| Resque.enqueue(Work, :n => n) }
       end
 
-      results.should == [1, 2, 3]
+      it "rescues any errors in the passed block" do
+        worker.start do |job|
+          n = job["args"].first["n"]
+
+          raise "FAIL" if n == 1
+          results << n
+          worker.shutdown if n == 3
+        end
+
+        results.should == [2, 3]
+      end
+
+      it "tolerates errors in callbacks" do
+        EM.run do
+          redis = Pace.redis_connect
+
+          worker.start do |job|
+            n = job["args"][0]["n"]
+
+            redis.ping do
+              raise "FAIL" if n == 1
+              results << n
+              worker.shutdown if n == 3
+            end
+          end
+        end
+
+        results.should == [2, 3]
+      end
     end
 
-    it "continues to fetch jobs if the Redis connection drops when waiting for blpop to return" do
-      Resque.enqueue(Work, :n => 1)
-      Resque.enqueue(Work, :n => 2)
-      Resque.enqueue(Work, :n => 3)
+    context "Redis connection errors" do
+      before do
+        1.upto(3) { |n| Resque.enqueue(Work, :n => n) }
+      end
 
-      results = []
+      it "continues to fetch jobs if the Redis connection drops inside the job callback" do
+        worker.start do |job|
+          n = job["args"][0]["n"]
+          results << n
 
-      worker = Pace::Worker.new(Work.queue)
-      worker.add_hook(:start) do
-        EM.add_timer(0.1) do
-          worker.instance_eval { @redis.close_connection }
+          case n
+          when 1
+            worker.instance_eval { @redis.close_connection }
+          when 3
+            worker.shutdown
+          end
         end
-      end
-      worker.start do |job|
-        n = job["args"][0]["n"]
-        results << n
-        sleep 0.1
-        worker.shutdown if n == 3
+
+        results.should == [1, 2, 3]
       end
 
-      results.should == [1, 2, 3]
+      it "continues to fetch jobs if the Redis connection drops when waiting for blpop to return" do
+        worker.add_hook(:start) do
+          EM.add_timer(0.1) do
+            worker.instance_eval { @redis.close_connection }
+          end
+        end
+
+        worker.start do |job|
+          n = job["args"][0]["n"]
+          results << n
+          sleep 0.1
+          worker.shutdown if n == 3
+        end
+
+        results.should == [1, 2, 3]
+      end
     end
   end
 
   describe "event hooks" do
-    it "can be defined for start, error, and shutdown" do
+    before do
       Resque.enqueue(Work, :n => 1)
       Resque.enqueue(Work, :n => 2)
+    end
 
+    it "can be defined for start, error, and shutdown" do
       called_hooks = []
 
-      worker = Pace::Worker.new(Work.queue)
       worker.add_hook(:start) do
         called_hooks.should be_empty
         called_hooks << :start
@@ -232,9 +233,6 @@ describe Pace::Worker do
     end
 
     it "can be defined globally on Pace::Worker" do
-      Resque.enqueue(Work, :n => 1)
-      Resque.enqueue(Work, :n => 2)
-
       called_hooks = []
 
       Pace::Worker.add_hook(:start) do
@@ -253,7 +251,6 @@ describe Pace::Worker do
         called_hooks << :shutdown
       end
 
-      worker = Pace::Worker.new(Work.queue)
       worker.start do |job|
         n = job["args"].first["n"]
 
@@ -295,13 +292,8 @@ describe Pace::Worker do
 
   describe "#shutdown" do
     it "stops the event loop and calls shutdown hooks" do
-      Resque.enqueue(Work, :n => 1)
-      Resque.enqueue(Work, :n => 2)
-      Resque.enqueue(Work, :n => 3)
+      1.upto(3) { |n| Resque.enqueue(Work, :n => n) }
 
-      results = []
-
-      worker = Pace::Worker.new(Work.queue)
       worker.start do |job|
         worker.shutdown
         results << job["args"].first["n"]
@@ -314,18 +306,12 @@ describe Pace::Worker do
 
   describe "signal handling" do
     before do
-      Resque.enqueue(Work, :n => 1)
-      Resque.enqueue(Work, :n => 2)
-      Resque.enqueue(Work, :n => 3)
-
-      @worker = Pace::Worker.new(Work.queue)
+      1.upto(3) { |n| Resque.enqueue(Work, :n => n) }
     end
 
     ["QUIT", "TERM", "INT"].each do |signal|
       it "handles SIG#{signal}" do
-        results = []
-
-        @worker.start do |job|
+        worker.start do |job|
           n = job["args"].first["n"]
           Process.kill(signal, $$) if n == 1
           results << n
@@ -339,18 +325,9 @@ describe Pace::Worker do
   end
 
   describe "pausing and resuming" do
-    before do
-      @worker = Pace::Worker.new(Work.queue)
-    end
-
     it "pauses the reactor and resumes it" do
-      Resque.enqueue(Work, :n => 1)
-      Resque.enqueue(Work, :n => 2)
-      Resque.enqueue(Work, :n => 3)
+      1.upto(3) { |n| Resque.enqueue(Work, :n => n) }
 
-      results = []
-
-      worker = Pace::Worker.new(Work.queue)
       worker.start do |job|
         n = job["args"].first["n"]
         if n == 1
@@ -368,13 +345,8 @@ describe Pace::Worker do
     end
 
     it "pauses for specified time period" do
-      Resque.enqueue(Work, :n => 1)
-      Resque.enqueue(Work, :n => 2)
-      Resque.enqueue(Work, :n => 3)
+      1.upto(3) { |n| Resque.enqueue(Work, :n => n) }
 
-      results = []
-
-      worker = Pace::Worker.new(Work.queue)
       worker.start do |job|
         n = job["args"].first["n"]
         if n == 1
@@ -391,8 +363,8 @@ describe Pace::Worker do
     end
 
     it "does not pause if already paused" do
-      Resque.enqueue(Work, :n => 1)
-      worker = Pace::Worker.new(Work.queue)
+      Resque.enqueue(Work)
+
       worker.start do |job|
         worker.pause(0.1)
         worker.pause(0.1).should be_false
@@ -403,14 +375,13 @@ describe Pace::Worker do
     it "does not start multiple fetch loops if resume is called multiple times when paused" do
       Resque.enqueue(Work)
 
-      worker = Pace::Worker.new(Work.queue)
       worker.start do |job|
         worker.pause
 
         EM.should_receive(:next_tick).once
         worker.resume
         worker.resume
-        EM.stop
+        worker.shutdown
       end
     end
   end
