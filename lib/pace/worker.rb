@@ -3,8 +3,8 @@ module Pace
     attr_reader :queue
 
     class << self
-      def add_hook(event, &block)
-        global_hooks[event] << block
+      def add_hook(event, callback = nil, &block)
+        global_hooks[event] << (callback || block)
       end
 
       def global_hooks
@@ -39,10 +39,12 @@ module Pace
     end
 
     def start(&block)
+      Pace.logger.info "Starting up"
+
       @block = block
 
-      Pace.logger.info "Starting up"
       register_signal_handlers
+      register_error_handler
 
       EM.run do
         EM.epoll # Change to kqueue for BSD kernels
@@ -102,8 +104,8 @@ module Pace
       EM.add_timer(10) { raise("Dying by exception") }
     end
 
-    def add_hook(event, &block)
-      @hooks[event] << block
+    def add_hook(event, callback = nil, &block)
+      @hooks[event] << (callback || block)
     end
 
     def throttled?
@@ -147,6 +149,12 @@ module Pace
       trap('TERM') { shutdown }
       trap('QUIT') { shutdown }
       trap('INT')  { shutdown }
+    end
+
+    def register_error_handler
+      EM.error_handler do |error|
+        run_hook(:error, nil, error)
+      end
     end
 
     def log_exception(message, exception)

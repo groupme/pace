@@ -67,3 +67,29 @@ You can also pause for a set period of time. The worker will resume
 automatically.
 
     worker.pause(0.5) # 500ms
+
+## Errors
+
+Pace attempts to keep the reactor going at all costs with explicit rescues
+and EM's catch-all error handler. A hook is provided for errors so that
+action can be taken:
+
+    worker.add_hook(:error) do |json, error|
+      message = error.message
+
+      # The job JSON can be nil if the error is raised in a callback.
+      message << json if json
+
+      Pace.logger.warn(message)
+    end
+
+Hooks can also be attached at the class-level, which affects all workers.
+
+    Pace::Worker.add_hook(:error, handler)
+
+Finally, an Airbrake hook is provided that will notify Airbrake on all
+exceptions:
+
+    require "pace/airbrake"
+
+    Pace::Worker.add_hook(:error, Pace::Airbrake.hook)
