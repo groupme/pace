@@ -19,7 +19,7 @@ Gem::Specification.new do |s|
   s.require_paths = ["lib"]
 
   s.add_dependency "eventmachine", ">= 0.12.10"
-  s.add_dependency "em-hiredis", ">= 0.1.0"
+  s.add_dependency "em-hiredis", "0.1.0"
   s.add_dependency "uuid"
   s.add_dependency "systemu" # macaddr 1.2.0 breaks this
 
