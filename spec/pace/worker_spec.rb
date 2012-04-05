@@ -266,6 +266,31 @@ describe Pace::Worker do
 
       called_hooks.should == [:start, :error, :shutdown]
     end
+
+    it "triggers error hooks for exceptions inside callbacks" do
+      errors = []
+
+      EM.run do
+        redis = Pace.redis_connect
+
+        worker.add_hook(:error) do |json, error|
+          errors << error
+        end
+
+        worker.start do |job|
+          n = job["args"][0]["n"]
+
+          redis.ping do
+            raise "FAIL" if n == 1
+            worker.shutdown
+          end
+        end
+      end
+
+      errors.size.should == 1
+      errors[0].should be_an_instance_of(RuntimeError)
+      errors[0].message.should == "FAIL"
+    end
   end
 
   describe "#shutdown" do

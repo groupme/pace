@@ -39,10 +39,12 @@ module Pace
     end
 
     def start(&block)
+      Pace.logger.info "Starting up"
+
       @block = block
 
-      Pace.logger.info "Starting up"
       register_signal_handlers
+      register_error_handler
 
       EM.run do
         EM.epoll # Change to kqueue for BSD kernels
@@ -147,6 +149,12 @@ module Pace
       trap('TERM') { shutdown }
       trap('QUIT') { shutdown }
       trap('INT')  { shutdown }
+    end
+
+    def register_error_handler
+      EM.error_handler do |error|
+        run_hook(:error, nil, error)
+      end
     end
 
     def log_exception(message, exception)
