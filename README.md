@@ -30,7 +30,7 @@ In a separate process, start up a worker:
 
     require 'pace'
 
-    worker = Pace::Worker.new("normal")
+    worker = Pace::Worker.new(:queue => "normal")
     worker.start do |job|
       klass = job["class"]
       options = job["args"].first
@@ -51,7 +51,7 @@ Pace connects to Redis with a URI that's looked up in the following order:
 It's very easy to overwhelm a remote service with pace. You can specify
 the maximum number of jobs to consume per second.
 
-    Pace::Worker.new("queue", :jobs_per_second => 100)
+    Pace::Worker.new(:queue => "normal", :jobs_per_second => 100)
 
 ## Pause/Resume
 
