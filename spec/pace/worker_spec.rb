@@ -157,6 +157,16 @@ describe Pace::Worker do
     context "Redis connection errors" do
       before do
         1.upto(3) { |n| Resque.enqueue(Work, :n => n) }
+
+        # Previously we just called #close_connection on the connection object
+        # but em-hiredis no longer automatically reconnects if you close the
+        # connection. This classy hack reaches into the depths of the connection
+        # and calls a method to simulate a connection drop which should trigger
+        # a reconnect.
+        def worker.simulate_connection_drop
+          connection = @redis.instance_variable_get(:@connection)
+          connection.close_connection_after_writing
+        end
       end
 
       it "continues to fetch jobs if the Redis connection drops inside the job callback" do
@@ -166,7 +176,7 @@ describe Pace::Worker do
 
           case n
           when 1
-            worker.instance_eval { @redis.close_connection }
+            worker.simulate_connection_drop
           when 3
             worker.shutdown
           end
@@ -178,7 +188,7 @@ describe Pace::Worker do
       it "continues to fetch jobs if the Redis connection drops when waiting for blpop to return" do
         worker.add_hook(:start) do
           EM.add_timer(0.1) do
-            worker.instance_eval { @redis.close_connection }
+            worker.simulate_connection_drop
           end
         end
 
