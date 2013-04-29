@@ -91,6 +91,8 @@ module Pace
           @paused   = false
           fetch_next_job
         end
+
+        true
       else
         false
       end

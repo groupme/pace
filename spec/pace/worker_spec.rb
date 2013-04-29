@@ -388,9 +388,9 @@ describe Pace::Worker do
       worker.start do |job|
         worker.pause
 
-        EM.should_receive(:next_tick).once
-        worker.resume
-        worker.resume
+        EM.stub(:next_tick)
+        worker.resume.should be_true
+        worker.resume.should be_false
         worker.shutdown
       end
     end
